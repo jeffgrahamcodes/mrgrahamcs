@@ -9,13 +9,27 @@
 
   const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 
+  /* Light inline formatting for content strings:
+     `code`, **bold**, and [text](#page) links to pages on this site. */
+  function fmt(text){
+    return String(text).split(/(`[^`]+`)/).map(part => {
+      if (part.length > 2 && part[0] === "`" && part[part.length-1] === "`") {
+        return `<code>${esc(part.slice(1,-1))}</code>`;
+      }
+      return esc(part)
+        .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+        .replace(/\[([^\]]+)\]\((#[a-z0-9-]+)\)/g, '<a href="$2">$1</a>');
+    }).join("");
+  }
+
   const PAGES = [
     ["newsletter", "This Week"],
+    ["guides", "Study Guides"],
     ["class", "How Class Works"],
     ["map", "Course Map"],
     ["careers", "Careers"],
     ["words", "CS Words"],
-    ["about", "About Mr. Graham"]
+    ["about", "About"]
   ];
 
   function worldSVG(){
@@ -59,7 +73,7 @@
       </section>
       <section><h2>How you can help at home</h2>
         <p>No coding background needed. Each one takes under ten minutes.</p>
-        <div class="tips">${issue.home.map(([t,d])=>`<div class="tip"><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`).join("")}</div>
+        <div class="tips">${issue.home.map(([t,d])=>`<div class="tip"><h3>${esc(t)}</h3><p>${fmt(d)}</p></div>`).join("")}</div>
       </section>
       <section><h2>Coming up</h2>
         <ul class="upcoming">${issue.upcoming.map(([w,d])=>`<li><span class="when">${esc(w)}</span><span>${esc(d)}</span></li>`).join("")}</ul>
@@ -73,6 +87,70 @@
       requestAnimationFrame(()=>requestAnimationFrame(()=>{k.style.transform="translateX(180px)";}));
     }
   }
+
+  /* ---------- study guides ---------- */
+  const LETTERS = ["A","B","C","D","E","F"];
+
+  function renderBlock(b){
+    switch (b.type) {
+      case "p":       return `<p>${fmt(b.text)}</p>`;
+      case "callout": return `<p class="callout">${fmt(b.text)}</p>`;
+      case "list":    return `<ul class="bullets">${b.items.map(i=>`<li>${fmt(i)}</li>`).join("")}</ul>`;
+      case "code":    return `<pre class="code"><code>${esc(b.text)}</code></pre>`;
+      case "table":   return `<div class="tbl"><table>
+          <thead><tr>${b.head.map(h=>`<th scope="col">${fmt(h)}</th>`).join("")}</tr></thead>
+          <tbody>${b.rows.map(r=>`<tr>${r.map((c,i)=>`<td data-label="${esc(b.head[i])}">${fmt(c)}</td>`).join("")}</tr>`).join("")}</tbody>
+        </table></div>`;
+      default:        return "";
+    }
+  }
+
+  function renderQuestion(item, n){
+    const correct = LETTERS.indexOf(item.answer);
+    return `<article class="q">
+      <h3><span class="qn">${n}</span>${fmt(item.q)}</h3>
+      ${item.code ? `<pre class="code"><code>${esc(item.code)}</code></pre>` : ""}
+      <ol class="choices">${item.choices.map((c,i)=>`<li><span class="letter">${LETTERS[i]}</span>${fmt(c)}</li>`).join("")}</ol>
+      <details class="ans">
+        <summary>Show answer</summary>
+        <p><b>${item.answer}) ${fmt(item.choices[correct])}.</b> ${fmt(item.why)}</p>
+      </details>
+    </article>`;
+  }
+
+  function renderGuide(g){
+    const toc = g.sections.map((sec,i)=>`<li><a href="#guides" data-jump="sec-${i}">${esc(sec.title)}</a></li>`).join("")
+      + `<li><a href="#guides" data-jump="practice">Practice questions</a></li>`;
+    document.getElementById("guide").innerHTML = `
+      <h1>${esc(g.title)}</h1>
+      <p class="intro">${fmt(g.quiz)}</p>
+      <div class="prose">${g.intro.map(renderBlock).join("")}</div>
+      <div class="toc" role="navigation" aria-label="On this page"><p>On this page</p><ul>${toc}</ul></div>
+      ${g.sections.map((sec,i)=>`<section id="sec-${i}" class="prose">
+        <h2>${esc(sec.title)}</h2>
+        ${sec.blocks.map(renderBlock).join("")}
+      </section>`).join("")}
+      <section id="practice">
+        <h2>Practice questions</h2>
+        <p>${fmt(g.practice.intro)}</p>
+        <div class="qs">${g.practice.questions.map((q,i)=>renderQuestion(q,i+1)).join("")}</div>
+      </section>
+      <section class="panel"><p>${fmt(g.closing)}</p></section>`;
+    document.querySelectorAll("[data-jump]").forEach(a => a.addEventListener("click", e => {
+      e.preventDefault();
+      document.getElementById(a.dataset.jump).scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+    }));
+  }
+
+  function pageGuides(){
+    const pick = STUDY_GUIDES.length > 1
+      ? `<label class="pick">Guide <select id="guideSelect" aria-label="Choose a study guide">${STUDY_GUIDES.map(g=>`<option value="${g.id}">${esc(g.label)}</option>`).join("")}</select></label>`
+      : "";
+    return `<div class="page">${pick}<div id="guide"></div></div>`;
+  }
+
+  /* Printing: open every answer so the printout has the full key. */
+  addEventListener("beforeprint", () => document.querySelectorAll("details.ans").forEach(d => d.open = true));
 
   function pageClass(){
     return `<div class="page">
@@ -173,7 +251,7 @@
     </div>`;
   }
 
-  const RENDER = {newsletter:pageNewsletter, class:pageClass, map:pageMap, careers:pageCareers, words:pageWords, about:pageAbout};
+  const RENDER = {newsletter:pageNewsletter, guides:pageGuides, class:pageClass, map:pageMap, careers:pageCareers, words:pageWords, about:pageAbout};
 
   document.getElementById("nav").innerHTML = PAGES.map(([id,label])=>`<li><a href="#${id}" data-id="${id}">${label}</a></li>`).join("");
 
@@ -188,6 +266,11 @@
     document.querySelectorAll(".contact").forEach(el=>{
       el.innerHTML = `<a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>`;
     });
+    if(key==="guides"){
+      const sel=document.getElementById("guideSelect");
+      if(sel) sel.addEventListener("change",()=>renderGuide(STUDY_GUIDES.find(g=>g.id===sel.value)));
+      renderGuide(STUDY_GUIDES[0]);
+    }
     if(key==="newsletter"){
       const sel=document.getElementById("weekSelect");
       sel.addEventListener("change",()=>renderIssue(ISSUES.find(i=>i.id===sel.value)));
