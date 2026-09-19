@@ -2,14 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mr. Graham's CS Class | Digital Pioneers Academy</title>
-  <meta name="description" content="Weekly updates and at-home support for families in Mr. Graham's 9th grade Computer Science class at Digital Pioneers Academy.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mr. Graham’s CS Class | Digital Pioneers Academy</title>
+  <meta name="description" content="Weekly updates and at-home support for families in Mr. Graham’s 9th grade Computer Science class at Digital Pioneers Academy.">
+  <meta name="theme-color" content="#EEF2F6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121A2A" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+  <!-- Fonts are self-hosted in /fonts (SIL Open Font License). -->
+  <link rel="preload" href="fonts/atkinson-hyperlegible-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/bricolage-grotesque-latin-opsz-wght.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
 
   <!-- content.js must load before app.js -->
@@ -17,23 +19,30 @@
   <script src="js/app.js" defer></script>
 </head>
 <body>
+  <a class="skip" href="#app">Skip to content</a>
+
   <div class="wrap">
     <header class="site">
-      <a class="brand" href="#newsletter">Mr. Graham's CS Class<span>9th Grade Computer Science, Digital Pioneers Academy</span></a>
+      <a class="brand" href="#newsletter">
+        Mr. Graham’s CS Class
+        <span class="long">9th Grade Computer Science, Digital Pioneers Academy</span>
+        <span class="short">9th Grade CS at DPA</span>
+      </a>
     </header>
 
-    <nav aria-label="Site">
+    <nav class="sitenav" aria-label="Site">
       <ul id="nav"></ul>
     </nav>
 
-    <main id="app">
+    <main id="app" tabindex="-1">
       <noscript>
         <p>This site needs JavaScript turned on to show the weekly newsletter.</p>
       </noscript>
     </main>
 
-    <footer>
-      Questions anytime: <span class="contact"></span>
+    <footer class="foot">
+      <p>Questions anytime: <span class="contact"></span></p>
+      <p><a href="#about">About Mr. Graham</a></p>
     </footer>
   </div>
 </body>

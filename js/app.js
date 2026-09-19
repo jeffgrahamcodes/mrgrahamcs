@@ -7,7 +7,25 @@
 (function () {
   "use strict";
 
+  /* ---------- helpers ---------- */
+
   const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+  /* Typographer's punctuation for plain text: curly quotes and apostrophes,
+     a real multiplication sign in "5x5", and an ellipsis for "...".
+     Never applied to code. */
+  function smart(text){
+    return String(text)
+      .replace(/(\d)x(\d)/g, "$1\u00D7$2")
+      .replace(/\.\.\./g, "\u2026")
+      .replace(/(^|[\s(\[{-])"/g, "$1\u201C")   // opening double quote
+      .replace(/"/g, "\u201D")                      // closing double quote
+      .replace(/(^|[\s(\[{-])'/g, "$1\u2018")   // opening single quote
+      .replace(/'/g, "\u2019");                     // apostrophe or closing single
+  }
+
+  /* Plain content text: smart punctuation, then escaped for HTML. */
+  const txt = s => esc(smart(s));
 
   /* Light inline formatting for content strings:
      `code`, **bold**, and [text](#page) links to pages on this site. */
@@ -16,79 +34,142 @@
       if (part.length > 2 && part[0] === "`" && part[part.length-1] === "`") {
         return `<code>${esc(part.slice(1,-1))}</code>`;
       }
-      return esc(part)
+      return txt(part)
         .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
         .replace(/\[([^\]]+)\]\((#[a-z0-9-]+)\)/g, '<a href="$2">$1</a>');
     }).join("");
   }
 
-  const PAGES = [
-    ["newsletter", "This Week"],
-    ["guides", "Study Guides"],
-    ["class", "How Class Works"],
-    ["map", "Course Map"],
-    ["careers", "Careers"],
-    ["words", "CS Words"],
-    ["about", "About"]
+  const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* Code samples can scroll sideways, so they need to be reachable by keyboard. */
+  /* Each line is its own block with a hanging indent, so a line that wraps
+     on a phone continues indented instead of looking like a new line. */
+  const codeBlock = text => `<pre class="code" tabindex="0" aria-label="Code sample"><code>${
+    String(text).split("\n").map(line => {
+      const n = line.length - line.trimStart().length + 2;
+      return `<span class="ln" style="padding-left:${n}ch;text-indent:-${n}ch">${esc(line) || " "}</span>`;
+    }).join("")
+  }</code></pre>`;
+
+  /* ---------- navigation ---------- */
+
+  /* 24px line icons, drawn with currentColor so they follow the theme. */
+  const ICONS = {
+    week:    '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    study:   '<path d="M12 6.5C10 5 7 4.5 3.5 5v13.5c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"/><path d="M12 6.5V20"/>',
+    map:     '<path d="M9 4.5 3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2-6-2z"/><path d="M9 4.5v13M15 6.5v13"/>',
+    careers: '<rect x="3.5" y="7.5" width="17" height="12" rx="2"/><path d="M9 7.5v-2A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5v2M3.5 12.5h17"/>',
+    class:   '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19.5c.5-3 2.8-5 5.5-5s5 2 5.5 5"/><circle cx="17" cy="9.5" r="2.5"/><path d="M15.5 14.8c2.4.2 4.3 2 4.8 4.7"/>'
+  };
+
+  /* [route, tab label, short label for very small phones, icon, page title] */
+  const TABS = [
+    ["newsletter", "This Week",  "Week",    "week",    "This Week"],
+    ["guides",     "Study",      "Study",   "study",   "Study Guides"],
+    ["map",        "Course Map", "Map",     "map",     "Course Map"],
+    ["careers",    "Careers",    "Careers", "careers", "Careers"],
+    ["class",      "Our Class",  "Class",   "class",   "Our Class"]
   ];
 
+  /* Routes that live inside another tab. */
+  const PARENT_TAB = { words: "guides", about: "class" };
+
+  function buildNav(){
+    document.getElementById("nav").innerHTML = TABS.map(([id, label, short, icon]) => `
+      <li><a href="#${id}" data-id="${id}" aria-label="${label}">
+        <span class="pill"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[icon]}</svg></span>
+        <span><span class="lbl-full">${label}</span><span class="lbl-short" aria-hidden="true">${short}</span></span>
+      </a></li>`).join("");
+  }
+
+  /* ---------- This Week ---------- */
+
+  const WIDE = matchMedia("(min-width:700px)");
+  WIDE.addEventListener("change", () => {
+    const svg = document.querySelector(".world");
+    if (svg) svg.outerHTML = worldSVG();
+  });
+
   function worldSVG(){
-    const cols=8, rows=3, s=60, w=cols*s, h=rows*s;
+    const cols = WIDE.matches ? 14 : 8, rows=2, s=60, w=cols*s, h=rows*s;
     let g="";
     for(let x=0;x<=cols;x++) g+=`<line x1="${x*s}" y1="0" x2="${x*s}" y2="${h}" stroke="var(--line)"/>`;
     for(let y=0;y<=rows;y++) g+=`<line x1="0" y1="${y*s}" x2="${w}" y2="${y*s}" stroke="var(--line)"/>`;
     for(let x=0;x<cols;x++) for(let y=0;y<rows;y++) g+=`<circle cx="${x*s+s/2}" cy="${y*s+s/2}" r="2" fill="var(--muted)" opacity=".5"/>`;
-    g+=`<rect x="${w-8}" y="${s}" width="8" height="${2*s}" fill="var(--wall)"/>`;
-    g+=[3,5,6].map(x=>`<circle cx="${x*s+s/2}" cy="${2*s+s/2}" r="13" fill="var(--ball)" stroke="var(--ink)" stroke-width="2"/>`).join("");
-    g+=`<g id="karel"><polygon points="${s*.22},${2*s+s*.2} ${s*.22},${2*s+s*.8} ${s*.82},${2*s+s*.5}" fill="var(--ink)"/></g>`;
+    g+=`<rect x="${w-8}" y="0" width="8" height="${h}" fill="var(--wall)"/>`;
+    g+=[3,5,6].map(x=>`<circle cx="${x*s+s/2}" cy="${s+s/2}" r="13" fill="var(--ball)" stroke="var(--ink)" stroke-width="2"/>`).join("");
+    g+=`<g id="karel"><polygon points="${s*.22},${s+s*.2} ${s*.22},${s+s*.8} ${s*.82},${s+s*.5}" fill="var(--ink)"/></g>`;
     return `<svg class="world" viewBox="0 0 ${w} ${h}" role="img" aria-label="A Karel grid world with Karel moving toward tennis balls and a wall">${g}</svg>`;
   }
 
   function pageNewsletter(){
-    const opts = ISSUES.map(i=>`<option value="${i.id}">${esc(i.label)}</option>`).join("");
+    const opts = ISSUES.map((i,n)=>`<option value="${i.id}">${txt(i.label)}${n===0 ? " (this week)" : ""}</option>`).join("");
     return `<div class="page">
-      <label class="pick">Week <select id="weekSelect" aria-label="Choose a week">${opts}</select></label>
+      <label class="pick">Week <select id="weekSelect">${opts}</select></label>
+      <p class="sr-only" id="weekStatus" aria-live="polite"></p>
       <div id="issue"></div>
     </div>`;
   }
+
   function renderIssue(issue){
-    document.getElementById("issue").innerHTML = `
+    const older = issue !== ISSUES[0]
+      ? `<p class="older">You’re reading an older issue. <a href="#newsletter">See this week</a></p>` : "";
+    document.getElementById("issue").innerHTML = `${older}
       <article class="hero">
         ${worldSVG()}
         <div class="hero-text">
-          <p class="dates">Week of ${esc(issue.label)}</p>
-          <h1>${esc(issue.title)}</h1>
-          <p class="lede">${esc(issue.lede)}</p>
-          ${issue.note?`<p class="lede">${esc(issue.note)}</p>`:""}
+          <p class="dates">Week of ${txt(issue.label)}</p>
+          <h1 tabindex="-1">${txt(issue.title)}</h1>
+          ${issue.summary ? `<p class="summary">${fmt(issue.summary)}</p>` : ""}
         </div>
       </article>
-      <section><h2>This week in CS</h2>
-        <ul class="topics">${issue.topics.map(([t,d])=>`<li><b>${esc(t)}</b><span>${esc(d)}</span></li>`).join("")}</ul>
+
+      <section>
+        <h2>How you can help at home</h2>
+        <p>No coding background needed. Each one takes under ten minutes.</p>
+        <div class="tips">${issue.home.map(([t,d])=>`<div class="tip"><h3>${fmt(t)}</h3><p>${fmt(d)}</p></div>`).join("")}</div>
       </section>
+
+      <section>
+        <h2>This week in CS</h2>
+        <p>${fmt(issue.lede)}</p>
+        ${issue.note ? `<p>${fmt(issue.note)}</p>` : ""}
+        <ul class="topics">${issue.topics.map(([t,d])=>`<li><b>${fmt(t)}</b><span>${fmt(d)}</span></li>`).join("")}</ul>
+      </section>
+
       <section class="word">
         <p class="label">Word of the week</p>
-        <h2>${esc(issue.word.term)}</h2>
-        <p class="def">${esc(issue.word.def)}</p>
-        <p>${esc(issue.word.extra)}</p>
+        <h2>${txt(issue.word.term)}</h2>
+        <p class="def">${fmt(issue.word.def)}</p>
+        <p>${fmt(issue.word.extra)}</p>
       </section>
-      <section><h2>How you can help at home</h2>
-        <p>No coding background needed. Each one takes under ten minutes.</p>
-        <div class="tips">${issue.home.map(([t,d])=>`<div class="tip"><h3>${esc(t)}</h3><p>${fmt(d)}</p></div>`).join("")}</div>
+
+      <section>
+        <h2>Coming up</h2>
+        <ul class="upcoming">${issue.upcoming.map(([w,d])=>`<li><span class="when">${txt(w)}</span><span>${fmt(d)}</span></li>`).join("")}</ul>
       </section>
-      <section><h2>Coming up</h2>
-        <ul class="upcoming">${issue.upcoming.map(([w,d])=>`<li><span class="when">${esc(w)}</span><span>${esc(d)}</span></li>`).join("")}</ul>
-      </section>
+
       <section class="panel">
-        <p><b>I call five families every day.</b> If you get a call from me, odds are it's good news. Pick up!</p>
+        <p><b>I call five families every day.</b> If you get a call from me, odds are it’s good news. Pick up!</p>
         <p>Mr. Graham</p>
       </section>`;
-    const k=document.getElementById("karel");
-    if(k && !matchMedia("(prefers-reduced-motion: reduce)").matches){
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{k.style.transform="translateX(180px)";}));
+    const k = document.getElementById("karel");
+    if (k && !reducedMotion()) {
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ k.style.transform = "translateX(120px)"; }));
     }
   }
 
-  /* ---------- study guides ---------- */
+  /* ---------- Study: guides + CS words ---------- */
+
+  function studySwitch(active){
+    const item = (id, label) =>
+      `<a href="#${id}"${active===id ? ' aria-current="page"' : ""}>${label}</a>`;
+    return `<div class="seg" role="navigation" aria-label="Study">
+      ${item("guides","Quiz study guides")}${item("words","CS words")}
+    </div>`;
+  }
+
   const LETTERS = ["A","B","C","D","E","F"];
 
   function renderBlock(b){
@@ -96,7 +177,7 @@
       case "p":       return `<p>${fmt(b.text)}</p>`;
       case "callout": return `<p class="callout">${fmt(b.text)}</p>`;
       case "list":    return `<ul class="bullets">${b.items.map(i=>`<li>${fmt(i)}</li>`).join("")}</ul>`;
-      case "code":    return `<pre class="code"><code>${esc(b.text)}</code></pre>`;
+      case "code":    return codeBlock(b.text);
       case "table":   return `<div class="tbl"><table>
           <thead><tr>${b.head.map(h=>`<th scope="col">${fmt(h)}</th>`).join("")}</tr></thead>
           <tbody>${b.rows.map(r=>`<tr>${r.map((c,i)=>`<td data-label="${esc(b.head[i])}">${fmt(c)}</td>`).join("")}</tr>`).join("")}</tbody>
@@ -107,110 +188,69 @@
 
   function renderQuestion(item, n){
     const correct = LETTERS.indexOf(item.answer);
-    return `<article class="q">
-      <h3><span class="qn">${n}</span>${fmt(item.q)}</h3>
-      ${item.code ? `<pre class="code"><code>${esc(item.code)}</code></pre>` : ""}
-      <ol class="choices">${item.choices.map((c,i)=>`<li><span class="letter">${LETTERS[i]}</span>${fmt(c)}</li>`).join("")}</ol>
+    return `<article class="q" data-answer="${item.answer}">
+      <h3><span class="qn">${n}</span><span>${fmt(item.q)}</span></h3>
+      ${item.code ? codeBlock(item.code) : ""}
+      <ol class="choices">${item.choices.map((c,i)=>`<li><button type="button" class="choice" data-letter="${LETTERS[i]}"><span class="letter">${LETTERS[i]}</span><span>${fmt(c)}</span><span class="mark"></span></button></li>`).join("")}</ol>
+      <p class="sr-only" aria-live="polite"></p>
       <details class="ans">
-        <summary>Show answer</summary>
+        <summary><span class="show">Show answer</span><span class="hide">Hide answer</span></summary>
         <p><b>${item.answer}) ${fmt(item.choices[correct])}.</b> ${fmt(item.why)}</p>
       </details>
     </article>`;
   }
 
   function renderGuide(g){
-    const toc = g.sections.map((sec,i)=>`<li><a href="#guides" data-jump="sec-${i}">${esc(sec.title)}</a></li>`).join("")
+    const toc = g.sections.map((sec,i)=>`<li><a href="#guides" data-jump="sec-${i}">${txt(sec.title)}</a></li>`).join("")
       + `<li><a href="#guides" data-jump="practice">Practice questions</a></li>`;
     document.getElementById("guide").innerHTML = `
-      <h1>${esc(g.title)}</h1>
+      <h1 tabindex="-1">${txt(g.title)}</h1>
       <p class="intro">${fmt(g.quiz)}</p>
       <div class="prose">${g.intro.map(renderBlock).join("")}</div>
-      <div class="toc" role="navigation" aria-label="On this page"><p>On this page</p><ul>${toc}</ul></div>
+      <div class="toc" id="toc" role="navigation" aria-label="On this page"><p>Jump to</p><ul>${toc}</ul></div>
       ${g.sections.map((sec,i)=>`<section id="sec-${i}" class="prose">
-        <h2>${esc(sec.title)}</h2>
+        <h2>${txt(sec.title)}</h2>
         ${sec.blocks.map(renderBlock).join("")}
+        <a href="#guides" class="back" data-jump="toc">Back to sections</a>
       </section>`).join("")}
       <section id="practice">
         <h2>Practice questions</h2>
         <p>${fmt(g.practice.intro)}</p>
+        <p class="hint">Tap an answer to check it.</p>
         <div class="qs">${g.practice.questions.map((q,i)=>renderQuestion(q,i+1)).join("")}</div>
       </section>
-      <section class="panel"><p>${fmt(g.closing)}</p></section>`;
+      <section class="panel"><p>${fmt(g.closing)}</p></section>
+      <a href="#guides" class="back" data-jump="toc">Back to sections</a>`;
     document.querySelectorAll("[data-jump]").forEach(a => a.addEventListener("click", e => {
       e.preventDefault();
-      document.getElementById(a.dataset.jump).scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+      const target = document.getElementById(a.dataset.jump);
+      target.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth" });
+      const f = target.querySelector("h2") || target;
+      f.setAttribute("tabindex","-1"); f.focus({ preventScroll: true });
     }));
+  }
+
+  /* Drawn icons, so the check and cross look the same on every phone. */
+  const MARK_OK = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const MARK_NO = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+
+  /* Tapping a choice checks it. Wrong answers can be retried;
+     a right answer opens the explanation. */
+  function checkChoice(btn){
+    const q = btn.closest(".q"), right = btn.dataset.letter === q.dataset.answer;
+    q.querySelectorAll(".choice").forEach(b => { b.classList.remove("right","wrong"); b.querySelector(".mark").textContent = ""; b.removeAttribute("aria-pressed"); });
+    btn.classList.add(right ? "right" : "wrong");
+    btn.setAttribute("aria-pressed","true");
+    btn.querySelector(".mark").innerHTML = (right ? MARK_OK : MARK_NO) + (right ? "Correct" : "Not quite");
+    q.querySelector("[aria-live]").textContent = right ? `${btn.dataset.letter} is correct.` : `${btn.dataset.letter} is not quite right. Try again.`;
+    if (right) q.querySelector("details.ans").open = true;
   }
 
   function pageGuides(){
     const pick = STUDY_GUIDES.length > 1
-      ? `<label class="pick">Guide <select id="guideSelect" aria-label="Choose a study guide">${STUDY_GUIDES.map(g=>`<option value="${g.id}">${esc(g.label)}</option>`).join("")}</select></label>`
+      ? `<label class="pick">Unit <select id="guideSelect">${STUDY_GUIDES.map(g=>`<option value="${g.id}">${txt(g.label)}</option>`).join("")}</select></label>`
       : "";
-    return `<div class="page">${pick}<div id="guide"></div></div>`;
-  }
-
-  /* Printing: open every answer so the printout has the full key. */
-  addEventListener("beforeprint", () => document.querySelectorAll("details.ans").forEach(d => d.open = true));
-
-  function pageClass(){
-    return `<div class="page">
-      <h1>How class works</h1>
-      <p class="intro">Your scholar is learning Python, a programming language used by real engineers. Here's what a day in CS looks like and what we expect from everyone in the room, adults included.</p>
-
-      <section><h2>Our four norms</h2>
-        <div class="norms">
-          <div class="norm"><h3>Bring Your Voice</h3><p>Scholars share ideas, ask questions, and explain their thinking out loud. A wrong answer said out loud helps the whole class more than a right answer kept quiet.</p></div>
-          <div class="norm"><h3>Debug First</h3><p>When code breaks, scholars read the error message and try to find the problem before raising a hand. That's what programmers do all day.</p></div>
-          <div class="norm"><h3>Try Different Approaches</h3><p>There's almost always more than one way to solve a coding problem. If the first idea doesn't work, try a second one.</p></div>
-          <div class="norm"><h3>Stay Focused</h3><p>Laptops are for CodeHS during class. Staying on task is how scholars finish their work in the room instead of at home.</p></div>
-        </div>
-      </section>
-
-      <section><h2>A typical class period</h2>
-        <ol class="period">
-          <li><b>Do Now</b>A few quick questions on paper to warm up and connect to what we learned last time.</li>
-          <li><b>Mini-lesson</b>I teach the new idea and we work through an example together. Scholars take notes on a paper notecatcher, so the thinking happens before the laptops open.</li>
-          <li><b>Coding practice</b>Scholars write and test programs in CodeHS, on their own or with a partner.</li>
-          <li><b>Check for understanding</b>A short question at the end so I know who has it and who needs more help tomorrow.</li>
-        </ol>
-      </section>
-
-    </div>`;
-  }
-
-  function pageMap(){
-    return `<div class="page">
-      <h1>Course map</h1>
-      <p class="intro">Here's the path for the year. Dates move a little when testing, snow days, or assemblies come up, so think of these as seasons, not deadlines. Projects are in red.</p>
-      <ul class="map">
-        ${UNITS.map(([id,mo,name,desc,proj])=>`<li class="${id===CURRENT_UNIT_ID?"now":""}">
-          <span class="mo">${esc(mo)}</span>${id===CURRENT_UNIT_ID?`<span class="tag">We are here</span>`:""}
-          <p class="${proj?"proj":""}">${proj?"Project: ":""}${esc(name)}</p>
-          <p>${esc(desc)}</p>
-        </li>`).join("")}
-      </ul>
-    </div>`;
-  }
-
-  function pageCareers(){
-    return `<div class="page">
-      <h1>Where CS can take you</h1>
-      <p class="intro">The skills your scholar is building right now, like breaking a problem into steps and fixing what's broken, are the same skills these careers run on.</p>
-      <div class="stat">
-        <strong>$139K</strong>
-        <p>Average yearly pay for computer and math jobs in the DC metro area.
-          <small>Based on an average hourly wage of $66.87. Source: U.S. Bureau of Labor Statistics, May 2025.</small></p>
-      </div>
-      <div class="jobs">
-        ${CAREERS.map(([slug,t,d])=>`<article class="job">
-          <div class="pic"><img src="images/careers/${slug}.jpg" alt="Illustration of a ${esc(t.toLowerCase())} at work" loading="lazy"></div>
-          <div class="t"><h3>${esc(t)}</h3><p>${esc(d)}</p></div>
-        </article>`).join("")}
-      </div>
-      <section class="panel">
-        <p><b>Talk about it at home.</b> Ask your scholar which of these jobs sounds most interesting and why. There's no wrong answer, and it tells you a lot about what gets them excited.</p>
-      </section>
-    </div>`;
+    return `<div class="page">${studySwitch("guides")}${pick}<div id="guide"></div></div>`;
   }
 
   function pageWords(){
@@ -219,67 +259,189 @@
     const all = weekly.concat(EXTRA_WORDS.filter(w=>!seen.has(w[0].toLowerCase())).map(w=>[w[0],w[1],""]))
       .sort((a,b)=>a[0].localeCompare(b[0]));
     return `<div class="page">
-      <h1>CS words</h1>
-      <p class="intro">When your scholar says "my loop won't stop," this is where to look. Every Word of the Week lands here, so the list grows all year.</p>
+      ${studySwitch("words")}
+      <h1 tabindex="-1">CS words</h1>
+      <p class="intro">${fmt(WORDS_INTRO)}</p>
       <dl class="gloss">
-        ${all.map(([t,d,wk])=>`<div><dt>${esc(t)}</dt><dd>${esc(d)}${wk?`<span class="wk">${esc(wk)}</span>`:""}</dd></div>`).join("")}
+        ${all.map(([t,d,wk])=>`<div><dt>${txt(t)}</dt><dd>${fmt(d)}${wk?`<span class="wk">${txt(wk)}</span>`:""}</dd></div>`).join("")}
       </dl>
     </div>`;
   }
 
-  function pageAbout(){
+  /* Printing: open every answer so the printout has the full key. */
+  addEventListener("beforeprint", () => document.querySelectorAll("details.ans").forEach(d => d.open = true));
+
+  /* ---------- Course Map ---------- */
+
+  function mapItem([id, when, name, desc, isProject]){
+    const now = id === CURRENT_UNIT_ID;
+    return `<li class="${now ? "now" : ""}"${now ? ' aria-current="step"' : ""}>
+      <span class="mo">${txt(when)}</span>${now ? `<span class="tag">We are here</span>` : ""}${isProject ? `<span class="kind">Project</span>` : ""}
+      <p class="name">${txt(name)}</p>
+      <p>${fmt(desc)}</p>
+    </li>`;
+  }
+
+  function pageMap(){
+    const cur = Math.max(0, UNITS.findIndex(u => u[0] === CURRENT_UNIT_ID));
+    const done = UNITS.slice(0, cur), rest = UNITS.slice(cur);
     return `<div class="page">
-      <h1>About Mr. Graham</h1>
-      <div class="about">
-        <!-- PHOTO: uncomment the line below and swap in your image when you have one.
-        <div class="photo"><img src="images/mr-graham.jpg" alt="Mr. Graham"></div>
-        -->
-        <div>
-          <p class="intro flush">I teach 9th grade Computer Science at Digital Pioneers Academy. Before the classroom, I spent years building and running technology for real.</p>
-          <ul class="path">
-            <li><b>U.S. Air Force, Captain</b>Communications and Information Systems Officer</li>
-            <li><b>Web developer</b>Built websites and applications as a full-stack developer</li>
-            <li><b>Amazon Web Services</b>Partner Solutions Architect, helping companies build on the cloud</li>
-            <li><b>Digital Pioneers Academy</b>Teaching scholars in Southeast DC to build with code</li>
-          </ul>
-        </div>
+      <h1 tabindex="-1">Course map</h1>
+      <p class="intro">${fmt(MAP_INTRO)}</p>
+      ${done.length ? `<details class="past">
+          <summary>Finished so far (${done.length})</summary>
+          <ul class="map">${done.map(mapItem).join("")}</ul>
+        </details>` : ""}
+      <ul class="map">${rest.map(mapItem).join("")}</ul>
+    </div>`;
+  }
+
+  /* ---------- Careers ---------- */
+
+  function pageCareers(){
+    const s = CAREERS_PAGE.stat;
+    return `<div class="page">
+      <h1 tabindex="-1">Where CS can take you</h1>
+      <p class="intro">${fmt(CAREERS_PAGE.intro)}</p>
+      <div class="stat">
+        <strong>${txt(s.value)}</strong>
+        <p>${fmt(s.label)}<small>${fmt(s.source)}</small></p>
       </div>
-      <section class="panel">
-        <p>I came to teaching because the scholars in this building deserve the same shot at these careers as anyone else in this city. My job is to make sure they leave my class able to build things, not just use them.</p>
-        <p>I'd like to hear from you. Reach me at <span class="contact"></span>.</p>
+      <div class="jobs">
+        ${CAREERS.map(([slug,t,d])=>`<article class="job">
+          <div class="pic"><img src="images/careers/${slug}.jpg" alt="" loading="lazy"></div>
+          <div class="t"><h2>${txt(t)}</h2><p>${fmt(d)}</p></div>
+        </article>`).join("")}
+      </div>
+      <section class="panel"><p>${fmt(CAREERS_PAGE.talk)}</p></section>
+    </div>`;
+  }
+
+  /* ---------- Our Class (includes About Mr. Graham) ---------- */
+
+  function pageClass(){
+    return `<div class="page">
+      <h1 tabindex="-1">Our class</h1>
+      <p class="intro">${fmt(OUR_CLASS.intro)}</p>
+
+      <section id="meet" class="meet">
+        <h2>Meet Mr. Graham</h2>
+        <div class="about${ABOUT.photo ? " has-photo" : ""}">
+          ${ABOUT.photo ? `<div class="photo"><img src="${esc(ABOUT.photo)}" alt="Mr. Graham"></div>` : ""}
+          <div>
+            <p>${fmt(ABOUT.intro)}</p>
+            <ul class="path">${ABOUT.path.map(([t,d])=>`<li><b>${txt(t)}</b>${fmt(d)}</li>`).join("")}</ul>
+            <p>${fmt(ABOUT.why)}</p>
+            <p>Reach me anytime at <span class="contact"></span>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Our four norms</h2>
+        <div class="norms">${OUR_CLASS.norms.map(([t,d])=>`<div class="norm"><h3>${txt(t)}</h3><p>${fmt(d)}</p></div>`).join("")}</div>
+      </section>
+
+      <section>
+        <h2>A typical class period</h2>
+        <ol class="period">${OUR_CLASS.period.map(([t,d])=>`<li><b>${txt(t)}</b>${fmt(d)}</li>`).join("")}</ol>
       </section>
     </div>`;
   }
 
-  const RENDER = {newsletter:pageNewsletter, guides:pageGuides, class:pageClass, map:pageMap, careers:pageCareers, words:pageWords, about:pageAbout};
+  /* ---------- router ---------- */
 
-  document.getElementById("nav").innerHTML = PAGES.map(([id,label])=>`<li><a href="#${id}" data-id="${id}">${label}</a></li>`).join("");
+  const RENDER = {
+    newsletter: pageNewsletter, guides: pageGuides, words: pageWords,
+    map: pageMap, careers: pageCareers, class: pageClass, about: pageClass
+  };
 
-  function route(){
-    const id = (location.hash||"#newsletter").slice(1);
+  function route(fromNavigation){
+    const [id, sub] = (location.hash || "#newsletter").slice(1).split("/");
     const key = RENDER[id] ? id : "newsletter";
+    const tab = PARENT_TAB[key] || key;
+
     document.getElementById("app").innerHTML = RENDER[key]();
-    document.querySelectorAll("nav a").forEach(a=>{
-      if(a.dataset.id===key){a.setAttribute("aria-current","page");a.scrollIntoView({block:"nearest",inline:"nearest"});}
+
+    document.querySelectorAll("#nav a").forEach(a => {
+      if (a.dataset.id === tab) a.setAttribute("aria-current", "page");
       else a.removeAttribute("aria-current");
     });
-    document.querySelectorAll(".contact").forEach(el=>{
+    document.querySelectorAll(".contact").forEach(el => {
       el.innerHTML = `<a href="mailto:${esc(CONTACT)}">${esc(CONTACT)}</a>`;
     });
-    if(key==="guides"){
-      const sel=document.getElementById("guideSelect");
-      if(sel) sel.addEventListener("change",()=>renderGuide(STUDY_GUIDES.find(g=>g.id===sel.value)));
-      renderGuide(STUDY_GUIDES[0]);
+
+    /* Week and guide pickers put their choice in the address, so a
+       specific week can be shared, bookmarked, and reached with Back. */
+    if (key === "newsletter") {
+      const issue = ISSUES.find(i => i.id === sub) || ISSUES[0];
+      if (sub && issue.id !== sub) history.replaceState(null, "", "#newsletter");
+      const sel = document.getElementById("weekSelect");
+      sel.value = issue.id;
+      sel.addEventListener("change", () => {
+        history.pushState(null, "", sel.value === ISSUES[0].id ? "#newsletter" : `#newsletter/${sel.value}`);
+        const picked = ISSUES.find(i => i.id === sel.value);
+        renderIssue(picked);
+        document.getElementById("weekStatus").textContent = `Showing the week of ${picked.label}.`;
+      });
+      renderIssue(issue);
     }
-    if(key==="newsletter"){
-      const sel=document.getElementById("weekSelect");
-      sel.addEventListener("change",()=>renderIssue(ISSUES.find(i=>i.id===sel.value)));
-      renderIssue(ISSUES[0]);
+    if (key === "guides") {
+      const guide = STUDY_GUIDES.find(g => g.id === sub) || STUDY_GUIDES[0];
+      if (sub && guide.id !== sub) history.replaceState(null, "", "#guides");
+      const sel = document.getElementById("guideSelect");
+      if (sel) {
+        sel.value = guide.id;
+        sel.addEventListener("change", () => {
+          history.pushState(null, "", `#guides/${sel.value}`);
+          renderGuide(STUDY_GUIDES.find(g => g.id === sel.value));
+        });
+      }
+      renderGuide(guide);
+      document.getElementById("guide").addEventListener("click", e => {
+        const btn = e.target.closest(".choice");
+        if (btn) checkChoice(btn);
+      });
     }
-    const label = PAGES.find(p=>p[0]===key)[1];
-    document.title = `${label} | Mr. Graham's CS Class`;
-    window.scrollTo(0,0);
+
+    const title = key === "words" ? "CS Words" : key === "about" ? "About Mr. Graham" : TABS.find(t => t[0] === tab)[4];
+    document.title = `${title} | Mr. Graham’s CS Class`;
+
+    if (key === "about") {
+      document.getElementById("meet").scrollIntoView();
+    } else {
+      window.scrollTo(0, 0);
+    }
+    /* After the page changes, move focus to its heading so screen
+       readers announce the new page. Not on first load. */
+    if (fromNavigation) {
+      const h = key === "about" ? document.querySelector("#meet h2") : document.querySelector("#app h1");
+      if (h) { h.setAttribute("tabindex","-1"); h.focus({ preventScroll: true }); }
+    }
   }
-  addEventListener("hashchange", route);
-  route();
+
+  /* A link to the page you're already on (like the footer's About link
+     while reading About) doesn't fire hashchange, so handle it here. */
+  document.addEventListener("click", e => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a || a.dataset.jump || a.classList.contains("skip")) return;
+    const here = location.hash || "#newsletter";
+    if (a.getAttribute("href") !== here) return;
+    e.preventDefault();
+    const target = here === "#about" ? document.getElementById("meet") : null;
+    if (target) target.scrollIntoView(); else window.scrollTo(0, 0);
+    const h = target ? target.querySelector("h2") : document.querySelector("#app h1");
+    if (h) { h.setAttribute("tabindex","-1"); h.focus({ preventScroll: true }); }
+  });
+
+  /* Skip link: jump to the main content without changing the route. */
+  document.querySelector(".skip").addEventListener("click", e => {
+    e.preventDefault();
+    const main = document.getElementById("app");
+    main.focus();
+  });
+
+  buildNav();
+  addEventListener("hashchange", () => route(true));
+  route(false);
 })();

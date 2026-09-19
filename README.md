@@ -15,15 +15,29 @@ images/careers/       One illustration per career on the Careers page.
 
 The rule: **content changes go in `content.js`, looks go in `styles.css`, behavior goes in `app.js`.** A normal week only touches `content.js`.
 
+## Site map
+
+Five tabs. On phones they sit in a bar at the bottom of the screen; on larger screens they're a strip under the header.
+
+| Tab | Route | What's there |
+|---|---|---|
+| This Week | `#newsletter` | Current newsletter, past weeks in a dropdown |
+| Study | `#guides`, `#words` | Quiz study guides and the CS words glossary |
+| Course Map | `#map` | The year, with finished units collapsed |
+| Careers | `#careers` | Career cards and DC pay data |
+| Our Class | `#class`, `#about` | Meet Mr. Graham, norms, a typical class period |
+
+`#about` opens Our Class scrolled to Meet Mr. Graham, and the footer links there.
+
 ## Weekly update
 
 1. Open `js/content.js`.
 2. In `ISSUES`, copy the newest `{ ... }` block (including its trailing comma) and paste it directly above itself.
-3. Change the `id` (the Monday date, `YYYY-MM-DD`), `label`, and the text.
+3. Change the `id` (the Monday date, `YYYY-MM-DD`), `label`, `summary`, and the text. The `summary` is one sentence and shows first; write it for the parent who reads nothing else.
 4. If the unit changed, update `CURRENT_UNIT_ID` to the matching id in `UNITS`.
 5. Open `index.html` in a browser and check the page before deploying.
 
-The previous week moves into the Week dropdown on its own, and the new Word of the Week is added to the CS Words page automatically.
+The previous week moves into the Past weeks dropdown on its own, and the new Word of the Week is added to CS Words (under the Study tab) automatically.
 
 If the page comes up blank after an edit, there's a syntax error in `content.js`. It's almost always a missing comma between blocks or an unescaped `"` inside a string. Use `\"` for quotes inside text.
 
@@ -49,7 +63,21 @@ Inside any text you can write `` `code` ``, `**bold**`, or `[a link](#guides)` t
 
 - **Glossary term:** add `["Term", "Definition"]` to `EXTRA_WORDS`.
 - **Career:** drop a `.jpg` in `images/careers/`, then add `["file-name", "Title", "Description"]` to `CAREERS`. The first value is the file name without `.jpg`.
-- **Your photo:** save it as `images/mr-graham.jpg` (square works best), then in `js/app.js` search for `PHOTO:` and remove the comment markers around the `<img>` line.
+- **Your photo:** save it as `images/mr-graham.jpg` (square works best), then in `js/content.js` set `photo: "images/mr-graham.jpg"` inside `ABOUT`. Set it back to `null` to hide it.
+- **Any page text:** the copy for Our Class, About, Course Map, Careers, and CS Words is at the bottom of `content.js`.
+
+## Look and feel
+
+All styling comes from tokens at the top of `css/styles.css`: fonts, a type scale (`--fs-xs` through `--fs-2xl`, nothing smaller than 14px), the reading width (`--measure`), and colors for light and dark mode. Change a token and the whole site follows.
+
+Color rules the site sticks to:
+- **Lime** means current, highlighted, or something to do: the active tab, "We are here," home tips, answers.
+- **Red** means wrong or warning: a wrong answer, an older issue. Nothing else.
+- **Green** means correct.
+
+Fonts are self-hosted in `fonts/` under the SIL Open Font License (licenses included): Atkinson Hyperlegible for text, Atkinson Hyperlegible Mono for code, and Bricolage Grotesque (variable, with optical sizing) for headings.
+
+Quotes and apostrophes are curled automatically when the page renders, so type plain `'` and `"` in `content.js`. Code in backticks is left alone.
 
 ## Running locally
 
