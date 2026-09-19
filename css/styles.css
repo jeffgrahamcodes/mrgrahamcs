@@ -1,0 +1,143 @@
+/* Mr. Graham's CS Class: site styles
+   Colors are tokens on :root. Dark mode redefines the same tokens. */
+
+/* ---------- tokens ---------- */
+:root{
+  --paper:#EEF2F6; --grid:#D8E0EA; --ink:#15233D; --muted:#4C5A72;
+  --ball:#D4E640; --ball-ink:#2B3300; --wall:#B8432F; --card:#FFFFFF; --line:#C9D3E0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#121A2A; --grid:#1D2840; --ink:#E7ECF4; --muted:#A3B0C6;
+    --wall:#E07A62; --card:#18223A; --line:#2C3A57;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#121A2A; --grid:#1D2840; --ink:#E7ECF4; --muted:#A3B0C6;
+  --wall:#E07A62; --card:#18223A; --line:#2C3A57;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Atkinson Hyperlegible","Segoe UI",Arial,sans-serif;
+  font-size:1.0625rem; line-height:1.6;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:32px 32px;
+}
+h1,h2,h3{font-family:"Bricolage Grotesque","Arial Narrow",Arial,sans-serif;line-height:1.1;margin:0}
+a{color:inherit;text-underline-offset:3px}
+img{max-width:100%;height:auto;display:block}
+:focus-visible{outline:3px solid var(--wall);outline-offset:3px}
+.wrap{max-width:52rem;margin:0 auto;padding:1.25rem 1.25rem 4rem}
+
+
+/* ---------- site header + nav ---------- */
+.site{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;padding-bottom:1rem}
+.brand{font-weight:700;text-decoration:none}
+.brand span{display:block;font-weight:400;color:var(--muted);font-size:.95rem}
+nav{position:sticky;top:0;z-index:5;background:var(--paper);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);margin:0 -1.25rem 1.75rem;padding:0 1.25rem}
+nav ul{list-style:none;margin:0;padding:0;display:flex;gap:.25rem;overflow-x:auto;scrollbar-width:none}
+@media (min-width:900px){nav ul{flex-wrap:wrap;justify-content:space-between}}
+nav ul::-webkit-scrollbar{display:none}
+nav a{display:block;white-space:nowrap;padding:.7rem .75rem;text-decoration:none;font-weight:700;border-bottom:4px solid transparent}
+nav a[aria-current="page"]{border-bottom-color:var(--ball);background:var(--card)}
+
+.page h1{font-size:clamp(2rem,6vw,3rem);font-weight:800;letter-spacing:-.02em;margin-bottom:.6rem}
+.intro{max-width:40rem;margin:0 0 1.5rem;font-size:1.125rem}
+.intro.flush{margin-top:0}
+section{margin-top:2.5rem}
+section h2{font-size:1.6rem;font-weight:700;margin-bottom:.75rem}
+section > p{margin:.5rem 0;max-width:40rem}
+.panel{background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:1.25rem 1.5rem}
+.panel p{margin:.4rem 0}
+
+
+/* ---------- newsletter ---------- */
+.pick{display:flex;align-items:center;gap:.5rem;color:var(--muted);font-size:.95rem;margin-bottom:1rem}
+select{font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:.35rem .6rem}
+.hero{background:var(--card);border:2px solid var(--ink);border-radius:14px;overflow:hidden}
+.world{display:block;width:100%;height:auto;border-bottom:2px solid var(--ink);background:var(--paper)}
+.hero-text{padding:1.25rem 1.5rem 1.5rem}
+.dates{color:var(--muted);margin:0 0 .4rem}
+.hero h1{margin:0}
+.hero p.lede{margin:.8rem 0 0;max-width:36rem}
+.topics{list-style:none;padding:0;margin:0;border-top:2px solid var(--ink)}
+.topics li{display:grid;grid-template-columns:11rem 1fr;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--line)}
+.topics b{font-family:"Bricolage Grotesque",Arial,sans-serif;font-size:1.15rem}
+@media (max-width:560px){.topics li{grid-template-columns:1fr;gap:.2rem}}
+.word{background:var(--ball);color:var(--ball-ink);border-radius:14px;padding:1.5rem;border:2px solid var(--ink)}
+.word h2{font-size:clamp(2.2rem,8vw,3.4rem);font-weight:800;letter-spacing:-.02em;margin:0 0 .5rem}
+.word .def{font-size:1.2rem;margin:0 0 .75rem}
+.word p{margin:0}
+.word .label{margin:0 0 .25rem;font-weight:700}
+.tips{display:grid;gap:1rem}
+.tip{background:var(--card);border-left:6px solid var(--wall);padding:1rem 1.25rem;border-radius:0 10px 10px 0}
+.tip h3{font-size:1.2rem;margin-bottom:.3rem}
+.tip p{margin:0}
+.upcoming{list-style:none;margin:0;padding:0}
+.upcoming li{display:flex;gap:1rem;padding:.6rem 0;border-bottom:1px dashed var(--line)}
+.upcoming .when{flex:0 0 8.5rem;font-weight:700}
+@media (max-width:480px){.upcoming li{flex-direction:column;gap:0}.upcoming .when{flex:none}}
+
+
+/* ---------- norms ---------- */
+.norms{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem}
+.norm{background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:1.1rem 1.25rem}
+.norm h3{font-size:1.35rem;margin-bottom:.35rem}
+.norm p{margin:0}
+.period{list-style:none;margin:0;padding:0;counter-reset:step}
+.period li{position:relative;padding:.8rem 0 .8rem 3rem;border-bottom:1px solid var(--line)}
+.period li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:.75rem;width:2rem;height:2rem;border-radius:50%;background:var(--ball);color:var(--ball-ink);border:2px solid var(--ink);font-weight:700;display:grid;place-items:center;font-size:.95rem}
+.period b{display:block}
+
+
+/* ---------- course map ---------- */
+.map{list-style:none;margin:0;padding:0;border-left:4px solid var(--ink);margin-left:.5rem}
+.map li{position:relative;padding:0 0 1.4rem 1.5rem}
+.map li::before{content:"";position:absolute;left:-.8rem;top:.35rem;width:1.1rem;height:1.1rem;border-radius:50%;background:var(--card);border:3px solid var(--ink)}
+.map li.now::before{background:var(--ball)}
+.map .mo{font-family:"Bricolage Grotesque",Arial,sans-serif;font-weight:700;font-size:1.25rem}
+.map .tag{display:inline-block;margin-left:.5rem;font-size:.85rem;font-weight:700;background:var(--ball);color:var(--ball-ink);padding:.05rem .5rem;border-radius:999px;vertical-align:middle}
+.map p{margin:.15rem 0 0;max-width:38rem}
+.proj{color:var(--wall);font-weight:700}
+
+
+/* ---------- careers ---------- */
+.stat{display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap;background:var(--ball);color:var(--ball-ink);border:2px solid var(--ink);border-radius:14px;padding:1.25rem 1.5rem}
+.stat strong{font-family:"Bricolage Grotesque",Arial,sans-serif;font-size:clamp(2.4rem,9vw,3.6rem);line-height:1;font-weight:800}
+.stat p{margin:0;flex:1 1 16rem}
+.stat small{display:block;margin-top:.35rem;opacity:.85}
+.jobs{display:grid;grid-template-columns:repeat(auto-fill,minmax(14.5rem,1fr));gap:1rem;margin-top:1.5rem}
+.job{background:var(--card);border:2px solid var(--ink);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.job .pic{background:#fff;border-bottom:2px solid var(--ink);height:11rem;display:flex;align-items:center;justify-content:center;padding:.75rem}
+.job .pic img{max-height:100%;max-width:100%;width:auto;object-fit:contain}
+.job div.t{padding:.9rem 1.1rem 1.1rem}
+.job h3{font-size:1.2rem;margin-bottom:.3rem}
+.job p{margin:0}
+.job .link{margin-top:.5rem;font-size:.95rem;color:var(--muted)}
+
+
+/* ---------- glossary ---------- */
+.gloss{margin:0;border-top:2px solid var(--ink)}
+.gloss div{display:grid;grid-template-columns:10rem 1fr;gap:1rem;padding:.9rem 0;border-bottom:1px solid var(--line)}
+.gloss dt{font-family:"Bricolage Grotesque",Arial,sans-serif;font-weight:700;font-size:1.15rem}
+.gloss dd{margin:0}
+.gloss .wk{display:block;color:var(--muted);font-size:.9rem}
+@media (max-width:520px){.gloss div{grid-template-columns:1fr;gap:.1rem}}
+
+
+/* ---------- about ---------- */
+.about{display:grid;grid-template-columns:1fr;gap:1.5rem;align-items:start}
+.about:has(.photo){grid-template-columns:13rem 1fr}
+.photo{aspect-ratio:1;border:2px solid var(--ink);border-radius:14px;overflow:hidden;background:var(--card)}
+.photo img{width:100%;height:100%;object-fit:cover}
+@media (max-width:600px){.about{grid-template-columns:1fr}.photo{max-width:12rem}}
+.path{list-style:none;padding:0;margin:0}
+.path li{padding:.6rem 0;border-bottom:1px solid var(--line)}
+.path b{display:block}
+
+footer{margin-top:3rem;color:var(--muted);font-size:.95rem;border-top:2px solid var(--ink);padding-top:1rem}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;background:rgba(127,127,127,.18);padding:.05rem .3rem;border-radius:4px}
+#karel{transform:translateX(0)}
+@media (prefers-reduced-motion:no-preference){#karel{transition:transform .9s ease-in-out}}
