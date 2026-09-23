@@ -288,41 +288,120 @@
   }
   let PROGRESS = loadProgress();
 
-  /* Hints open one at a time: hint 2 is locked until hint 1 is open,
-     and the code frame is locked until all three have been used. */
-  function hintsFor(c, opened){
+  /* Hints are time gated. A scholar taps "start the timer," keeps
+     working while it runs, and the hint opens when it reaches zero.
+     The start time is stored, so closing the tab or reloading does
+     not restart the wait and does not skip it either.
+     The plan stays locked until all three hints are open. */
+
+  const waitFor = n => (typeof HINT_WAIT === "number" ? HINT_WAIT : HINT_WAIT[n] || 120);
+  const clock = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+
+  /* Seconds left on the timer for hint index n, or null if it was
+     never started. Negative means the wait is over. */
+  function secondsLeft(state, n){
+    if (!state.startedAt || state.startedFor !== n) return null;
+    return Math.ceil((state.startedAt + waitFor(n) * 1000 - Date.now()) / 1000);
+  }
+
+  function noTimers(){
+    try { return localStorage.getItem("mrg-no-timers") === "1"; } catch (e) { return false; }
+  }
+
+  function hintsFor(c, state){
+    const opened = state.hints || 0;
     const rows = c.hints.map((h, i) => {
-      const isOpen = i < opened, isNext = i === opened;
-      if (isOpen) {
+      if (i < opened) {
         return `<li class="hint-row open">
           <p class="hint-label">Hint ${i+1}</p>
           <p class="hint-text">${fmt(h)}</p>
         </li>`;
       }
-      return `<li class="hint-row">
-        <button type="button" class="hint-btn" data-hint="${c.id}" data-n="${i+1}"${isNext ? "" : " disabled"}>
+      if (i > opened) {
+        return `<li class="hint-row">
+          <button type="button" class="hint-btn" disabled>
+            <span class="hint-n">${i+1}</span>
+            <span>Hint ${i+1} is locked</span>
+            <span class="hint-meta">Open hint ${i} first</span>
+          </button>
+        </li>`;
+      }
+
+      /* This is the next hint: idle, counting down, or ready. */
+      const left = noTimers() ? -1 : secondsLeft(state, i);
+      if (left === null) {
+        return `<li class="hint-row">
+          <button type="button" class="hint-btn" data-start="${c.id}" data-n="${i}">
+            <span class="hint-n">${i+1}</span>
+            <span>I am stuck. Start the timer.</span>
+            <span class="hint-meta">Hint ${i+1} opens in ${clock(waitFor(i))}. Keep working while it runs.</span>
+          </button>
+        </li>`;
+      }
+      if (left > 0) {
+        const pct = Math.round(100 - (left / waitFor(i)) * 100);
+        return `<li class="hint-row waiting" data-tick="${c.id}" data-n="${i}">
+          <button type="button" class="hint-btn" disabled>
+            <span class="hint-n">${i+1}</span>
+            <span>Hint ${i+1} opens in <span class="countdown">${clock(left)}</span></span>
+            <span class="hint-meta">Go try something. This keeps running if you leave the page.</span>
+          </button>
+          <div class="bar"><span style="width:${pct}%"></span></div>
+        </li>`;
+      }
+      return `<li class="hint-row ready">
+        <button type="button" class="hint-btn" data-hint="${c.id}" data-n="${i+1}">
           <span class="hint-n">${i+1}</span>
-          <span>${isNext ? `Show hint ${i+1}` : `Hint ${i+1} is locked`}</span>
-          <span class="hint-meta">${isNext ? "Try for five minutes first" : `Open hint ${i} first`}</span>
+          <span>Show hint ${i+1}</span>
+          <span class="hint-meta">Unlocked. Open it only if you still need it.</span>
         </button>
       </li>`;
     }).join("");
 
-    const all = opened >= c.hints.length;
-    const frame = all
-      ? `<details class="ans frame">
-           <summary><span class="show">Show the code frame</span><span class="hide">Hide the code frame</span></summary>
-           ${codeBlock(c.frame)}
-           <p class="hint">Type it yourself. Copying it in teaches you nothing, and the quiz is on paper.</p>
-         </details>`
-      : `<p class="frame-locked">The code frame unlocks after all three hints. You are ${c.hints.length - opened} hint${c.hints.length - opened === 1 ? "" : "s"} away.</p>`;
+    /* The plan is the last rung: it needs all three hints AND a
+       timer of its own, so hint 3 gets a real chance to work. */
+    const n = c.hints.length, away = n - opened;
+    let plan;
+    if (away > 0) {
+      plan = `<p class="plan-locked">The plan unlocks after all three hints. You are ${away} hint${away === 1 ? "" : "s"} away.</p>`;
+    } else if (state.planOpen) {
+      plan = `<details class="ans plan" open>
+           <summary><span class="show">Show the plan</span><span class="hide">Hide the plan</span></summary>
+           ${codeBlock(c.plan)}
+           <p class="hint">This is the plan in plain English, not the code. Translating it line by line is your job, and it is the part the quiz asks about.</p>
+         </details>`;
+    } else {
+      const left = noTimers() ? -1 : secondsLeft(state, n);
+      if (left === null) {
+        plan = `<button type="button" class="hint-btn plan-btn" data-start="${c.id}" data-n="${n}">
+            <span class="hint-n">4</span>
+            <span>Still stuck. Start the timer for the plan.</span>
+            <span class="hint-meta">The plan opens in ${clock(waitFor(n))}. Go try hint 3 first.</span>
+          </button>`;
+      } else if (left > 0) {
+        const pct = Math.round(100 - (left / waitFor(n)) * 100);
+        plan = `<div class="hint-row waiting plan-wait" data-tick="${c.id}" data-n="${n}">
+            <button type="button" class="hint-btn plan-btn" disabled>
+              <span class="hint-n">4</span>
+              <span>The plan opens in <span class="countdown">${clock(left)}</span></span>
+              <span class="hint-meta">Keep working. This keeps running if you leave the page.</span>
+            </button>
+            <div class="bar"><span style="width:${pct}%"></span></div>
+          </div>`;
+      } else {
+        plan = `<button type="button" class="hint-btn plan-btn ready" data-plan="${c.id}">
+            <span class="hint-n">4</span>
+            <span>Show the plan</span>
+            <span class="hint-meta">Unlocked. Open it only if you still need it.</span>
+          </button>`;
+      }
+    }
 
-    return `<ol class="hints">${rows}</ol>${frame}`;
+    return `<ol class="hints">${rows}</ol>${plan}<p class="sr-only" aria-live="polite"></p>`;
   }
 
   function challengeCard(c){
     const state = PROGRESS[c.id] || {};
-    const opened = state.hints || 0;
     const checks = state.tests || [];
     return `<article class="chal" id="ch-${c.id}" data-id="${c.id}">
       <h2><span class="num">${txt(c.num)}</span>${txt(c.title)}</h2>
@@ -332,7 +411,7 @@
         <div><p class="label">Karel ends</p><p>${fmt(c.post)}</p></div>
       </div>
       <p class="callout"><b>The big idea.</b> ${fmt(c.idea)}</p>
-      <div class="hintbox">${hintsFor(c, opened)}</div>
+      <div class="hintbox">${hintsFor(c, state)}</div>
       <p class="label tests-label">Test it before you submit</p>
       <ul class="tests">${c.tests.map((t,i)=>`<li>
         <label><input type="checkbox" data-test="${c.id}" data-i="${i}"${checks[i] ? " checked" : ""}><span>${fmt(t)}</span></label>
@@ -364,23 +443,87 @@
       <section class="panel">
         <p><b>Before you raise your hand,</b> finish these three sentences out loud: my program does ___ but it should do ___; I think the bug is in ___; one thing I already tried is ___.</p>
       </section>
+
+      <p class="timers"><button type="button" id="timerToggle" class="linkish">${noTimers() ? "Turn hint timers back on" : "Turn off hint timers on this device"}</button></p>
     </div>`;
   }
 
-  /* Opening a hint or checking a test box updates the card in place. */
+  /* Redraws one challenge's hint area from the stored state. */
+  function refresh(id){
+    const c = CHALLENGES.find(x => x.id === id);
+    const box = document.querySelector(`#ch-${id} .hintbox`);
+    if (c && box) box.innerHTML = hintsFor(c, PROGRESS[id] || {});
+  }
+
+  /* One ticker for the whole page, running only while some timer
+     is counting down. */
+  let ticker = null;
+  function startTicker(){
+    stopTicker();
+    ticker = setInterval(() => {
+      const waiting = document.querySelectorAll(".hint-row.waiting");
+      if (!waiting.length) return stopTicker();
+      waiting.forEach(row => {
+        const id = row.dataset.tick, n = Number(row.dataset.n);
+        const left = secondsLeft(PROGRESS[id] || {}, n);
+        if (left === null) return;
+        if (left <= 0) {
+          refresh(id);
+          const say = document.querySelector(`#ch-${id} [aria-live]`);
+          const c = CHALLENGES.find(x => x.id === id);
+          if (say) say.textContent = c && n >= c.hints.length
+            ? "The plan is ready to open." : `Hint ${n+1} is ready to open.`;
+          return;
+        }
+        row.querySelector(".countdown").textContent = clock(left);
+        row.querySelector(".bar span").style.width = Math.round(100 - (left / waitFor(n)) * 100) + "%";
+      });
+    }, 1000);
+  }
+  function stopTicker(){ if (ticker) { clearInterval(ticker); ticker = null; } }
+
+  /* Starting a timer, opening a hint, and checking a test box. */
   function challengeClicks(root){
     root.addEventListener("click", e => {
-      const btn = e.target.closest(".hint-btn");
+      const starter = e.target.closest("[data-start]");
+      if (starter) {
+        const id = starter.dataset.start, n = Number(starter.dataset.n);
+        const state = PROGRESS[id] || (PROGRESS[id] = {});
+        state.startedAt = Date.now();
+        state.startedFor = n;
+        saveProgress(PROGRESS);
+        refresh(id);
+        startTicker();
+        return;
+      }
+
+      const planBtn = e.target.closest("[data-plan]");
+      if (planBtn) {
+        const id = planBtn.dataset.plan;
+        const state = PROGRESS[id] || (PROGRESS[id] = {});
+        state.planOpen = true;
+        delete state.startedAt;
+        delete state.startedFor;
+        saveProgress(PROGRESS);
+        refresh(id);
+        const open = document.querySelector(`#ch-${id} details.plan summary`);
+        if (open) open.focus({ preventScroll: true });
+        return;
+      }
+
+      const btn = e.target.closest(".hint-btn[data-hint]");
       if (!btn || btn.disabled) return;
-      const id = btn.dataset.hint, c = CHALLENGES.find(x => x.id === id);
+      const id = btn.dataset.hint;
       const state = PROGRESS[id] || (PROGRESS[id] = {});
       state.hints = Math.max(state.hints || 0, Number(btn.dataset.n));
+      delete state.startedAt;
+      delete state.startedFor;
       saveProgress(PROGRESS);
-      const box = document.querySelector(`#ch-${id} .hintbox`);
-      box.innerHTML = hintsFor(c, state.hints);
-      const fresh = box.querySelector(".hint-row.open:last-of-type .hint-text");
+      refresh(id);
+      const fresh = document.querySelector(`#ch-${id} .hint-row.open:last-of-type .hint-text`);
       if (fresh) { fresh.setAttribute("tabindex","-1"); fresh.focus({ preventScroll: true }); }
     });
+
     root.addEventListener("change", e => {
       const box = e.target.closest("input[data-test]");
       if (!box) return;
@@ -390,6 +533,27 @@
       state.tests[Number(box.dataset.i)] = box.checked;
       saveProgress(PROGRESS);
     });
+
+    /* Coming back to the tab after the wait ran out. */
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && document.querySelector(".hint-row.waiting")) {
+        CHALLENGES.forEach(c => refresh(c.id));
+        startTicker();
+      }
+    });
+
+    startTicker();
+  }
+
+  /* Teacher switch, for a scholar with an accommodation or a
+     conference where waiting makes no sense. Per device. */
+  function toggleTimers(){
+    try {
+      localStorage.setItem("mrg-no-timers", noTimers() ? "0" : "1");
+    } catch (e) {}
+    CHALLENGES.forEach(c => refresh(c.id));
+    const b = document.getElementById("timerToggle");
+    if (b) b.textContent = noTimers() ? "Turn hint timers back on" : "Turn off hint timers on this device";
   }
 
   /* ---------- Course Map ---------- */
@@ -483,6 +647,7 @@
     const key = RENDER[id] ? id : "newsletter";
     const tab = PARENT_TAB[key] || key;
 
+    stopTicker();
     document.getElementById("app").innerHTML = RENDER[key]();
 
     document.querySelectorAll("#nav a").forEach(a => {
@@ -527,6 +692,7 @@
     }
     if (key === "challenges") {
       challengeClicks(document.getElementById("app"));
+      document.getElementById("timerToggle").addEventListener("click", toggleTimers);
       /* #challenges/tower opens straight to that card. */
       const card = sub && document.getElementById(`ch-${sub}`);
       if (card) card.scrollIntoView();
