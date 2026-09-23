@@ -334,13 +334,22 @@ const CAREERS_PAGE = {
    KAREL CHALLENGES: hint ladders
    Lives at #challenges, inside the Study tab.
 
-   Each challenge has three hints. Scholars open them one at a
+   Each challenge has three hints and a plan in plain English.
+   The plan is pseudocode on purpose: scholars still have to do
+   the translating. Scholars open the hints one at a
    time; hint 2 stays locked until hint 1 is open. The code frame
    is locked behind all three hints on purpose. Order matters:
    hint 1 nudges, hint 2 names the structure, hint 3 gives the
    shape of the answer without the finished code.
    ------------------------------------------------------------ */
-const CHALLENGES_INTRO = "These are the hardest puzzles of the unit and almost nobody gets them on the first try. Work the six steps first. When you're truly stuck, open one hint, go try it, and only come back for the next one if you need it.";
+const CHALLENGES_INTRO = "These are the hardest puzzles of the unit and almost nobody gets them on the first try. Work the six steps first. When you're truly stuck, start the timer on a hint, keep working while it runs, and open it only if you still need it.";
+
+/* How long a scholar waits before each hint opens, in seconds.
+   The fourth number is the wait for the plan, which is the last
+   rung on the ladder. The timer starts when they tap the button
+   and keeps running if they switch tabs or reload. Change these
+   numbers to make hints come faster or slower. */
+const HINT_WAIT = [120, 120, 180, 300];
 
 const CHALLENGE_STEPS = [
   ["Read it twice", "Say the goal out loud in your own words before you touch the keyboard."],
@@ -362,30 +371,23 @@ const CHALLENGES = [
     idea: "The trip up to the shelf and the trip back are the same path. Write the path once as a function, then call it twice. That is what functions are for.",
     hints: [
       "Trace the path with your finger, from Karel to the ball. Write the moves and turns on paper before you type anything.",
-      "After Karel takes the ball, use `turn_around()`. Now that exact same path takes Karel home.",
+      "After Karel takes the ball, turn it around. That exact same path now takes Karel home.",
       "The main program is six lines: go to the ball, take it, turn around, come back, turn around, put it down."
     ],
-    frame:
-"# The path from the floor up to the shelf.\n" +
-"def move_up_and_right():\n" +
-"    move()\n" +
-"    turn_left()\n" +
-"    move()   # and however many more the shelf needs\n" +
-"    turn_right()\n" +
-"    move()\n" +
-"\n" +
-"def go_to_ball():\n" +
-"    move_up_and_right()\n" +
-"\n" +
-"def come_back():\n" +
-"    move_up_and_right()\n" +
-"\n" +
-"go_to_ball()\n" +
-"take_ball()\n" +
-"turn_around()\n" +
-"come_back()\n" +
-"turn_around()\n" +
-"put_ball()",
+    plan:
+      "To go to the ball:\n" +
+      "    Follow the path from the floor up to the shelf\n" +
+      "\n" +
+      "To come back:\n" +
+      "    Follow that same path again\n" +
+      "\n" +
+      "Main program:\n" +
+      "    Go to the ball\n" +
+      "    Take the ball\n" +
+      "    Turn around\n" +
+      "    Come back\n" +
+      "    Turn around\n" +
+      "    Put the ball down",
     tests: [
       "The ball ends on square (1, 1).",
       "Karel is back where Karel started.",
@@ -402,25 +404,23 @@ const CHALLENGES = [
     idea: "One lap is four sides. One side is: move until the wall, put a ball down, turn. Write the side, loop it 4 times for a lap, loop the lap 8 times for the race.",
     hints: [
       "You do not know how long a side is, and it changes from world to world. That rules out a for loop for the moving. Which loop keeps going until something stops it?",
-      "One side looks like `while front_is_clear(): move()` and then a `put_ball()` and a turn.",
-      "Three pieces. `run_side()` does one side. `run_lap()` calls `run_side()` four times. The main program calls `run_lap()` eight times."
+      "One side is: keep moving while the front is clear, then put a ball down and turn.",
+      "Three pieces. One function runs a single side. A second one calls it four times for a lap. The main program calls the lap eight times."
     ],
-    frame:
-"# Karel runs one side and drops a ball at the corner.\n" +
-"def run_side():\n" +
-"    while front_is_clear():\n" +
-"        move()\n" +
-"    put_ball()\n" +
-"    turn_left()\n" +
-"\n" +
-"# One lap is four sides.\n" +
-"def run_lap():\n" +
-"    for i in range(4):\n" +
-"        run_side()\n" +
-"\n" +
-"# Run the race.\n" +
-"for i in range(8):\n" +
-"    run_lap()",
+    plan:
+      "To run one side:\n" +
+      "    While the front is clear:\n" +
+      "        Move\n" +
+      "    Put a ball down\n" +
+      "    Turn left\n" +
+      "\n" +
+      "To run one lap:\n" +
+      "    Repeat 4 times:\n" +
+      "        Run one side\n" +
+      "\n" +
+      "Main program:\n" +
+      "    Repeat 8 times:\n" +
+      "        Run one lap",
     tests: [
       "8 balls on every corner, not 7 and not 9.",
       "Karel finishes where Karel started.",
@@ -437,31 +437,26 @@ const CHALLENGES = [
     idea: "Build a tower, skip a column, build again. \"Skip a column\" means move twice. Karel has to check that the front is clear before each move, or Karel crashes at the end of the world.",
     hints: [
       "Break it in two. One function builds a tower and brings Karel back down. The main program handles moving across the world.",
-      "To build: turn left, then `for i in range(3): put_ball(); move()`, then turn around, run back down to the wall, and turn left to face east again.",
-      "Moving across: `while front_is_clear(): move()` and then check `if front_is_clear():` before the second move. That check is what keeps Karel from crashing on the last column."
+      "To build the tower: turn left, then three times over, put a ball down and move. Then turn around, run back down to the wall, and turn left to face east again.",
+      "Moving across: keep moving while the front is clear, and check that the front is still clear before the second move. That check is what keeps Karel from crashing on the last column."
     ],
-    frame:
-"# Runs Karel back down to the wall.\n" +
-"def go_down():\n" +
-"    while front_is_clear():\n" +
-"        move()\n" +
-"\n" +
-"# Builds a 3 ball tower, comes back down facing east.\n" +
-"def build_tower():\n" +
-"    turn_left()\n" +
-"    for i in range(3):\n" +
-"        put_ball()\n" +
-"        move()\n" +
-"    turn_around()\n" +
-"    go_down()\n" +
-"    turn_left()\n" +
-"\n" +
-"build_tower()\n" +
-"while front_is_clear():\n" +
-"    move()\n" +
-"    if front_is_clear():\n" +
-"        move()\n" +
-"        build_tower()",
+    plan:
+      "To build one tower:\n" +
+      "    Turn left\n" +
+      "    Repeat 3 times:\n" +
+      "        Put a ball down\n" +
+      "        Move\n" +
+      "    Turn around\n" +
+      "    Move until the wall\n" +
+      "    Turn left     (now facing east again)\n" +
+      "\n" +
+      "Main program:\n" +
+      "    Build one tower\n" +
+      "    While the front is clear:\n" +
+      "        Move\n" +
+      "        If the front is clear:\n" +
+      "            Move\n" +
+      "            Build one tower",
     tests: [
       "Towers on columns 1, 3, 5, and so on. Nothing on the even columns.",
       "Every tower is exactly 3 balls.",
@@ -478,40 +473,34 @@ const CHALLENGES = [
     idea: "Clean one row. Walk back to the start of that row. Move up. Repeat. Four small functions beat one giant program.",
     hints: [
       "Do not try to write the whole thing at once. Get one row cleaning first, then worry about the next row.",
-      "A spot might be empty, so check before you take: `if balls_present(): take_ball()`. Taking from an empty square crashes Karel.",
-      "How does Karel know there is another row above? Facing east, the row above is to the left, so `while left_is_clear():`. Clean the last row after the loop ends."
+      "A spot might be empty, so check whether balls are present before you take one. Taking from an empty square crashes Karel.",
+      "How does Karel know there is another row above? Facing east, the row above is on Karel's left, so check whether the left is clear. Clean the last row after the loop ends."
     ],
-    frame:
-"# Picks up a ball, but only if one is there.\n" +
-"def clean_spot():\n" +
-"    if balls_present():\n" +
-"        take_ball()\n" +
-"\n" +
-"# Cleans one whole row, left to right.\n" +
-"def clean_row():\n" +
-"    while front_is_clear():\n" +
-"        clean_spot()\n" +
-"        move()\n" +
-"    clean_spot()\n" +
-"\n" +
-"# Back to the start of the row, still facing east.\n" +
-"def come_back():\n" +
-"    turn_around()\n" +
-"    while front_is_clear():\n" +
-"        move()\n" +
-"    turn_around()\n" +
-"\n" +
-"# Moves Karel up one row.\n" +
-"def move_up():\n" +
-"    turn_left()\n" +
-"    move()\n" +
-"    turn_right()\n" +
-"\n" +
-"while left_is_clear():\n" +
-"    clean_row()\n" +
-"    come_back()\n" +
-"    move_up()\n" +
-"clean_row()",
+    plan:
+      "To clean this spot:\n" +
+      "    If there are balls here:\n" +
+      "        Take a ball\n" +
+      "\n" +
+      "To clean one row:\n" +
+      "    While the front is clear:\n" +
+      "        Clean this spot\n" +
+      "        Move\n" +
+      "    Clean this spot   (the last square)\n" +
+      "\n" +
+      "To come back:\n" +
+      "    Turn around\n" +
+      "    Move until the wall\n" +
+      "    Turn around\n" +
+      "\n" +
+      "To move up one row:\n" +
+      "    Turn left, move, turn right\n" +
+      "\n" +
+      "Main program:\n" +
+      "    While there is a row above:\n" +
+      "        Clean one row\n" +
+      "        Come back\n" +
+      "        Move up one row\n" +
+      "    Clean one row     (the top one)",
     tests: [
       "The world is completely empty at the end.",
       "Karel never crashes trying to take a ball from an empty square.",
@@ -527,45 +516,35 @@ const CHALLENGES = [
     post: "Double the balls on that same square, nothing anywhere else, Karel home facing east.",
     idea: "Karel cannot count. But Karel can ask \"are there balls here?\" Take one ball and put two down next door. Repeat until the pile is gone. Next door now holds double. Then carry them back one at a time.",
     hints: [
-      "This is the hardest one. Start with the only question Karel can ask: `balls_present()`. Everything is built on that.",
+      "This is the hardest one. Start with the only question Karel can ask: are there balls here? Everything is built on that.",
       "Take one ball from the pile, move, put down two, come back. Repeat while there are still balls. The new pile is twice the size of the old one.",
       "Now the doubled pile is in the wrong spot. Move to it and carry the balls back one at a time. Then walk home and face east."
     ],
-    frame:
-"# Takes one ball and leaves two on the next square.\n" +
-"def take_one_put_two_beside():\n" +
-"    take_ball()\n" +
-"    move()\n" +
-"    put_ball()\n" +
-"    put_ball()\n" +
-"    turn_around()\n" +
-"    move()\n" +
-"    turn_around()\n" +
-"\n" +
-"# Carries one ball back to the pile next door.\n" +
-"def move_one_ball_back():\n" +
-"    take_ball()\n" +
-"    move()\n" +
-"    put_ball()\n" +
-"    turn_around()\n" +
-"    move()\n" +
-"    turn_around()\n" +
-"\n" +
-"def double_balls():\n" +
-"    while balls_present():\n" +
-"        take_one_put_two_beside()\n" +
-"    move()\n" +
-"    turn_around()\n" +
-"    while balls_present():\n" +
-"        move_one_ball_back()\n" +
-"    move()\n" +
-"    turn_around()\n" +
-"\n" +
-"move()\n" +
-"double_balls()\n" +
-"turn_around()\n" +
-"move()\n" +
-"turn_around()",
+    plan:
+      "To take one and leave two:\n" +
+      "    Take a ball\n" +
+      "    Move\n" +
+      "    Put a ball down, twice\n" +
+      "    Turn around, move, turn around\n" +
+      "\n" +
+      "To carry one back:\n" +
+      "    Take a ball\n" +
+      "    Move\n" +
+      "    Put a ball down\n" +
+      "    Turn around, move, turn around\n" +
+      "\n" +
+      "To double the pile:\n" +
+      "    While there are balls here:\n" +
+      "        Take one and leave two\n" +
+      "    Move, turn around\n" +
+      "    While there are balls here:\n" +
+      "        Carry one back\n" +
+      "    Move, turn around\n" +
+      "\n" +
+      "Main program:\n" +
+      "    Move to the pile\n" +
+      "    Double the pile\n" +
+      "    Turn around, move, turn around",
     tests: [
       "Start with 3 balls. End with 6.",
       "Start with 0 balls. The program still runs and nothing breaks.",
