@@ -329,3 +329,258 @@ const CAREERS_PAGE = {
   },
   talk: "**Talk about it at home.** Ask your scholar which of these jobs sounds most interesting and why. There's no wrong answer, and it tells you a lot about what gets them excited."
 };
+
+/* ------------------------------------------------------------
+   KAREL CHALLENGES: hint ladders
+   Lives at #challenges, inside the Study tab.
+
+   Each challenge has three hints. Scholars open them one at a
+   time; hint 2 stays locked until hint 1 is open. The code frame
+   is locked behind all three hints on purpose. Order matters:
+   hint 1 nudges, hint 2 names the structure, hint 3 gives the
+   shape of the answer without the finished code.
+   ------------------------------------------------------------ */
+const CHALLENGES_INTRO = "These are the hardest puzzles of the unit and almost nobody gets them on the first try. Work the six steps first. When you're truly stuck, open one hint, go try it, and only come back for the next one if you need it.";
+
+const CHALLENGE_STEPS = [
+  ["Read it twice", "Say the goal out loud in your own words before you touch the keyboard."],
+  ["Pre and post", "Where does Karel start and end? Position AND direction, both times."],
+  ["Find the repeat", "What small job happens over and over? That job is your function."],
+  ["Name your functions", "Two or three. Names that say what they do."],
+  ["Pseudocode", "Plain English with indents. No Python yet."],
+  ["Translate and test", "Turn each pseudocode line into code. Run it on more than one world."]
+];
+
+const CHALLENGES = [
+  {
+    id: "fetch",
+    num: "2.17.1",
+    title: "Fetch",
+    goal: "A ball is up on a shelf. Karel is on the floor. Go get the ball and bring it back to the start.",
+    pre: "Bottom left corner, facing east.",
+    post: "Back at the start, with the ball on (1, 1).",
+    idea: "The trip up to the shelf and the trip back are the same path. Write the path once as a function, then call it twice. That is what functions are for.",
+    hints: [
+      "Trace the path with your finger, from Karel to the ball. Write the moves and turns on paper before you type anything.",
+      "After Karel takes the ball, use `turn_around()`. Now that exact same path takes Karel home.",
+      "The main program is six lines: go to the ball, take it, turn around, come back, turn around, put it down."
+    ],
+    frame:
+"# The path from the floor up to the shelf.\n" +
+"def move_up_and_right():\n" +
+"    move()\n" +
+"    turn_left()\n" +
+"    move()   # and however many more the shelf needs\n" +
+"    turn_right()\n" +
+"    move()\n" +
+"\n" +
+"def go_to_ball():\n" +
+"    move_up_and_right()\n" +
+"\n" +
+"def come_back():\n" +
+"    move_up_and_right()\n" +
+"\n" +
+"go_to_ball()\n" +
+"take_ball()\n" +
+"turn_around()\n" +
+"come_back()\n" +
+"turn_around()\n" +
+"put_ball()",
+    tests: [
+      "The ball ends on square (1, 1).",
+      "Karel is back where Karel started.",
+      "Every function has a comment above it."
+    ]
+  },
+  {
+    id: "racing",
+    num: "2.17.2",
+    title: "Racing Karel",
+    goal: "Karel runs 8 laps around the racetrack and drops a ball at every corner. It has to work on a racetrack of any size.",
+    pre: "On the track, facing along one side.",
+    post: "Back at the starting spot, 8 balls on each corner.",
+    idea: "One lap is four sides. One side is: move until the wall, put a ball down, turn. Write the side, loop it 4 times for a lap, loop the lap 8 times for the race.",
+    hints: [
+      "You do not know how long a side is, and it changes from world to world. That rules out a for loop for the moving. Which loop keeps going until something stops it?",
+      "One side looks like `while front_is_clear(): move()` and then a `put_ball()` and a turn.",
+      "Three pieces. `run_side()` does one side. `run_lap()` calls `run_side()` four times. The main program calls `run_lap()` eight times."
+    ],
+    frame:
+"# Karel runs one side and drops a ball at the corner.\n" +
+"def run_side():\n" +
+"    while front_is_clear():\n" +
+"        move()\n" +
+"    put_ball()\n" +
+"    turn_left()\n" +
+"\n" +
+"# One lap is four sides.\n" +
+"def run_lap():\n" +
+"    for i in range(4):\n" +
+"        run_side()\n" +
+"\n" +
+"# Run the race.\n" +
+"for i in range(8):\n" +
+"    run_lap()",
+    tests: [
+      "8 balls on every corner, not 7 and not 9.",
+      "Karel finishes where Karel started.",
+      "Switch to a different racetrack world. It still works."
+    ]
+  },
+  {
+    id: "tower",
+    num: "2.17.3",
+    title: "Tower Builder",
+    goal: "Build a tower of 3 balls on every odd column: 1st, 3rd, 5th, and so on. Any size world.",
+    pre: "First row, first column, facing east.",
+    post: "A 3 ball tower on every odd column.",
+    idea: "Build a tower, skip a column, build again. \"Skip a column\" means move twice. Karel has to check that the front is clear before each move, or Karel crashes at the end of the world.",
+    hints: [
+      "Break it in two. One function builds a tower and brings Karel back down. The main program handles moving across the world.",
+      "To build: turn left, then `for i in range(3): put_ball(); move()`, then turn around, run back down to the wall, and turn left to face east again.",
+      "Moving across: `while front_is_clear(): move()` and then check `if front_is_clear():` before the second move. That check is what keeps Karel from crashing on the last column."
+    ],
+    frame:
+"# Runs Karel back down to the wall.\n" +
+"def go_down():\n" +
+"    while front_is_clear():\n" +
+"        move()\n" +
+"\n" +
+"# Builds a 3 ball tower, comes back down facing east.\n" +
+"def build_tower():\n" +
+"    turn_left()\n" +
+"    for i in range(3):\n" +
+"        put_ball()\n" +
+"        move()\n" +
+"    turn_around()\n" +
+"    go_down()\n" +
+"    turn_left()\n" +
+"\n" +
+"build_tower()\n" +
+"while front_is_clear():\n" +
+"    move()\n" +
+"    if front_is_clear():\n" +
+"        move()\n" +
+"        build_tower()",
+    tests: [
+      "Towers on columns 1, 3, 5, and so on. Nothing on the even columns.",
+      "Every tower is exactly 3 balls.",
+      "Try a world with an even number of columns, and one with a single column."
+    ]
+  },
+  {
+    id: "cleanup",
+    num: "2.17.4",
+    title: "Super Cleanup Karel",
+    goal: "Balls are scattered everywhere. Clean the whole world, any size, balls anywhere.",
+    pre: "Bottom left corner, facing east.",
+    post: "Every ball picked up. Karel can end anywhere, facing any direction.",
+    idea: "Clean one row. Walk back to the start of that row. Move up. Repeat. Four small functions beat one giant program.",
+    hints: [
+      "Do not try to write the whole thing at once. Get one row cleaning first, then worry about the next row.",
+      "A spot might be empty, so check before you take: `if balls_present(): take_ball()`. Taking from an empty square crashes Karel.",
+      "How does Karel know there is another row above? Facing east, the row above is to the left, so `while left_is_clear():`. Clean the last row after the loop ends."
+    ],
+    frame:
+"# Picks up a ball, but only if one is there.\n" +
+"def clean_spot():\n" +
+"    if balls_present():\n" +
+"        take_ball()\n" +
+"\n" +
+"# Cleans one whole row, left to right.\n" +
+"def clean_row():\n" +
+"    while front_is_clear():\n" +
+"        clean_spot()\n" +
+"        move()\n" +
+"    clean_spot()\n" +
+"\n" +
+"# Back to the start of the row, still facing east.\n" +
+"def come_back():\n" +
+"    turn_around()\n" +
+"    while front_is_clear():\n" +
+"        move()\n" +
+"    turn_around()\n" +
+"\n" +
+"# Moves Karel up one row.\n" +
+"def move_up():\n" +
+"    turn_left()\n" +
+"    move()\n" +
+"    turn_right()\n" +
+"\n" +
+"while left_is_clear():\n" +
+"    clean_row()\n" +
+"    come_back()\n" +
+"    move_up()\n" +
+"clean_row()",
+    tests: [
+      "The world is completely empty at the end.",
+      "Karel never crashes trying to take a ball from an empty square.",
+      "Run it on a different world with balls in different places."
+    ]
+  },
+  {
+    id: "double",
+    num: "2.17.5",
+    title: "Double Tennis Balls",
+    goal: "A pile of balls sits one square ahead. Karel does not know how many. Double the pile, leave no strays, and end where Karel started facing east.",
+    pre: "1st street, 1st avenue, facing east. The pile is at 1st street, 2nd avenue.",
+    post: "Double the balls on that same square, nothing anywhere else, Karel home facing east.",
+    idea: "Karel cannot count. But Karel can ask \"are there balls here?\" Take one ball and put two down next door. Repeat until the pile is gone. Next door now holds double. Then carry them back one at a time.",
+    hints: [
+      "This is the hardest one. Start with the only question Karel can ask: `balls_present()`. Everything is built on that.",
+      "Take one ball from the pile, move, put down two, come back. Repeat while there are still balls. The new pile is twice the size of the old one.",
+      "Now the doubled pile is in the wrong spot. Move to it and carry the balls back one at a time. Then walk home and face east."
+    ],
+    frame:
+"# Takes one ball and leaves two on the next square.\n" +
+"def take_one_put_two_beside():\n" +
+"    take_ball()\n" +
+"    move()\n" +
+"    put_ball()\n" +
+"    put_ball()\n" +
+"    turn_around()\n" +
+"    move()\n" +
+"    turn_around()\n" +
+"\n" +
+"# Carries one ball back to the pile next door.\n" +
+"def move_one_ball_back():\n" +
+"    take_ball()\n" +
+"    move()\n" +
+"    put_ball()\n" +
+"    turn_around()\n" +
+"    move()\n" +
+"    turn_around()\n" +
+"\n" +
+"def double_balls():\n" +
+"    while balls_present():\n" +
+"        take_one_put_two_beside()\n" +
+"    move()\n" +
+"    turn_around()\n" +
+"    while balls_present():\n" +
+"        move_one_ball_back()\n" +
+"    move()\n" +
+"    turn_around()\n" +
+"\n" +
+"move()\n" +
+"double_balls()\n" +
+"turn_around()\n" +
+"move()\n" +
+"turn_around()",
+    tests: [
+      "Start with 3 balls. End with 6.",
+      "Start with 0 balls. The program still runs and nothing breaks.",
+      "No balls anywhere except 1st street, 2nd avenue.",
+      "Karel ends at 1st street, 1st avenue facing east."
+    ]
+  }
+];
+
+/* Shown at the bottom of the challenges page. */
+const CHALLENGE_BUGS = [
+  ["Karel crashes into a wall.", "A `move()` ran when the front was blocked. Put it inside a while loop or check `front_is_clear()` first."],
+  ["\"There is no ball here\" error.", "`take_ball()` ran on an empty square. Guard it with `if balls_present():`."],
+  ["Karel does the first row and stops.", "Your loop only runs once, or Karel never came back to the start of the row."],
+  ["Works on one world, not another.", "You hard coded a number that changes between worlds. Replace that count with a while loop."],
+  ["Nothing happens at all.", "You defined the functions but never called them. Check the bottom of your program."],
+  ["Red error about indentation.", "Lines inside a def, a loop, or an if all have to be indented the same amount."]
+];
