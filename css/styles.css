@@ -348,6 +348,66 @@ select{font:inherit;font-size:var(--fs-base);color:var(--ink);background:var(--c
 .ans p{margin:.5rem 0 0;background:var(--highlight);color:var(--highlight-ink);padding:.6rem .8rem;border-radius:8px}
 
 
+/* ---------- Karel challenges ---------- */
+
+/* Three items in the Study switch is one too many for a small
+   phone, so the row is allowed to wrap instead of pushing the
+   page sideways. */
+@media (max-width:600px){
+  .seg{flex-wrap:wrap}
+  .seg a{flex:1 1 auto}
+}
+
+
+.steps{margin:0 0 1.75rem}
+.steps .period{margin:.75rem 0 .25rem}
+
+.chals{display:grid;gap:1.25rem;margin:1.5rem 0 2rem}
+.chal{background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:1.1rem 1.25rem;scroll-margin-top:1rem}
+.chal h2{display:flex;flex-wrap:wrap;align-items:baseline;gap:.6rem;font-size:var(--fs-lg);margin-bottom:.35rem}
+.chal .num{font-family:var(--font-body);font-size:var(--fs-sm);font-weight:700;background:var(--ball);color:var(--ball-ink);border:2px solid var(--ink);border-radius:999px;padding:.1rem .7rem}
+.chal .goal{margin:0 0 .9rem;max-width:var(--measure)}
+.chal .callout{margin:1rem 0}
+.chal .label{margin:0 0 .2rem;color:var(--muted);font-size:var(--fs-sm);font-weight:700}
+
+.prepost{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.75rem}
+.prepost > div{background:var(--paper);border:2px solid var(--line);border-radius:10px;padding:.6rem .8rem}
+.prepost p:last-child{margin:0}
+
+/* Hints open one at a time. A locked hint still reads as a real
+   control so nobody wonders whether the page is broken. */
+.hints{list-style:none;margin:1rem 0 0;padding:0;display:grid;gap:.5rem}
+.hint-row{display:block}
+.hint-btn{display:grid;grid-template-columns:2rem 1fr;gap:.25rem .75rem;align-items:center;width:100%;min-height:3.25rem;padding:.55rem .75rem;text-align:left;font:inherit;color:inherit;background:var(--paper);border:2px dashed var(--line);border-radius:10px;cursor:pointer}
+.hint-btn:hover:not(:disabled){border-style:solid;border-color:var(--ink)}
+.hint-btn:disabled{cursor:not-allowed;opacity:.55}
+.hint-btn > span:nth-child(2){font-weight:700}
+.hint-n{grid-row:span 2;width:2rem;height:2rem;border-radius:50%;background:var(--card);border:2px solid var(--ink);display:grid;place-items:center;font-weight:700;font-size:var(--fs-sm)}
+.hint-meta{color:var(--muted);font-size:var(--fs-sm)}
+.hint-row.open{background:var(--tip-bg);border-left:6px solid var(--ball);border-radius:0 10px 10px 0;padding:.7rem 1rem}
+.hint-row.open .hint-label{margin:0;font-weight:700;font-size:var(--fs-sm);color:var(--muted)}
+.hint-row.open .hint-text{margin:.15rem 0 0;max-width:var(--measure)}
+.hint-row.open .hint-text:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:4px}
+
+.frame{margin-top:1rem}
+.frame .code{margin-top:.75rem}
+.frame-locked{margin:1rem 0 0;color:var(--muted);font-size:var(--fs-sm)}
+
+.tests-label{margin-top:1.25rem}
+.tests{list-style:none;margin:.35rem 0 0;padding:0;display:grid;gap:.15rem}
+.tests label{display:flex;gap:.7rem;align-items:flex-start;min-height:2.75rem;padding:.35rem 0;cursor:pointer;max-width:var(--measure)}
+.tests input{flex:0 0 1.35rem;width:1.35rem;height:1.35rem;margin:.15rem 0 0;accent-color:var(--good)}
+.tests input:checked + span{color:var(--muted);text-decoration:line-through}
+
+@media (max-width:389px){.chal{padding:1rem .9rem}}
+
+@media print{
+  .hint-btn{display:none}
+  .frame-locked{display:none}
+  .chal{break-inside:avoid}
+}
+
+
 /* ---------- dark mode: calmer accents ---------- */
 
 @media (prefers-color-scheme: dark){
