@@ -391,9 +391,6 @@ select{font:inherit;font-size:var(--fs-base);color:var(--ink);background:var(--c
 .bar span{display:block;height:100%;background:var(--ball);transition:width 1s linear}
 @media (prefers-reduced-motion:reduce){.bar span{transition:none}}
 
-.timers{margin:1.5rem 0 0}
-.linkish{font:inherit;font-size:var(--fs-sm);color:var(--muted);background:none;border:0;border-bottom:1px solid var(--line);padding:.5rem 0;cursor:pointer}
-.linkish:hover{color:var(--ink);border-color:var(--ink)}
 
 .hint-row.open{background:var(--tip-bg);border-left:6px solid var(--ball);border-radius:0 10px 10px 0;padding:.7rem 1rem}
 .hint-row.open .hint-label{margin:0;font-weight:700;font-size:var(--fs-sm);color:var(--muted)}
@@ -418,7 +415,7 @@ select{font:inherit;font-size:var(--fs-base);color:var(--ink);background:var(--c
 @media (max-width:389px){.chal{padding:1rem .9rem}}
 
 @media print{
-  .hint-btn,.bar,.plan-locked,.timers{display:none}
+  .hint-btn,.bar,.plan-locked{display:none}
   .chal{break-inside:avoid}
 }
 
