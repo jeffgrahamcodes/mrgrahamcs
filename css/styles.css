@@ -384,14 +384,30 @@ select{font:inherit;font-size:var(--fs-base);color:var(--ink);background:var(--c
 .hint-btn > span:nth-child(2){font-weight:700}
 .hint-n{grid-row:span 2;width:2rem;height:2rem;border-radius:50%;background:var(--card);border:2px solid var(--ink);display:grid;place-items:center;font-weight:700;font-size:var(--fs-sm)}
 .hint-meta{color:var(--muted);font-size:var(--fs-sm)}
+.hint-row.waiting .hint-btn{border-style:solid;border-color:var(--ink);opacity:1;cursor:default}
+.hint-row.waiting .countdown{font-family:var(--font-code);font-variant-numeric:tabular-nums}
+.hint-row.ready .hint-btn{border-style:solid;border-color:var(--ink);background:var(--card)}
+.bar{height:.4rem;margin-top:-.15rem;background:var(--grid);border:2px solid var(--ink);border-top:0;border-radius:0 0 10px 10px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--ball);transition:width 1s linear}
+@media (prefers-reduced-motion:reduce){.bar span{transition:none}}
+
+.timers{margin:1.5rem 0 0}
+.linkish{font:inherit;font-size:var(--fs-sm);color:var(--muted);background:none;border:0;border-bottom:1px solid var(--line);padding:.5rem 0;cursor:pointer}
+.linkish:hover{color:var(--ink);border-color:var(--ink)}
+
 .hint-row.open{background:var(--tip-bg);border-left:6px solid var(--ball);border-radius:0 10px 10px 0;padding:.7rem 1rem}
 .hint-row.open .hint-label{margin:0;font-weight:700;font-size:var(--fs-sm);color:var(--muted)}
 .hint-row.open .hint-text{margin:.15rem 0 0;max-width:var(--measure)}
 .hint-row.open .hint-text:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:4px}
 
-.frame{margin-top:1rem}
-.frame .code{margin-top:.75rem}
-.frame-locked{margin:1rem 0 0;color:var(--muted);font-size:var(--fs-sm)}
+.plan-btn{margin-top:1rem;border-style:solid;border-color:var(--line)}
+.plan-btn.ready{border-color:var(--ink);background:var(--card)}
+.plan-wait{display:block;margin-top:1rem}
+.plan-wait .hint-btn{margin-top:0}
+
+.plan{margin-top:1rem}
+.plan .code{margin-top:.75rem}
+.plan-locked{margin:1rem 0 0;color:var(--muted);font-size:var(--fs-sm)}
 
 .tests-label{margin-top:1.25rem}
 .tests{list-style:none;margin:.35rem 0 0;padding:0;display:grid;gap:.15rem}
@@ -402,8 +418,7 @@ select{font:inherit;font-size:var(--fs-base);color:var(--ink);background:var(--c
 @media (max-width:389px){.chal{padding:1rem .9rem}}
 
 @media print{
-  .hint-btn{display:none}
-  .frame-locked{display:none}
+  .hint-btn,.bar,.plan-locked,.timers{display:none}
   .chal{break-inside:avoid}
 }
 
