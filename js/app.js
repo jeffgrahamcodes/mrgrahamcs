@@ -73,7 +73,7 @@
   ];
 
   /* Routes that live inside another tab. */
-  const PARENT_TAB = { words: "guides", about: "class" };
+  const PARENT_TAB = { words: "guides", challenges: "guides", about: "class" };
 
   function buildNav(){
     document.getElementById("nav").innerHTML = TABS.map(([id, label, short, icon]) => `
@@ -166,7 +166,7 @@
     const item = (id, label) =>
       `<a href="#${id}"${active===id ? ' aria-current="page"' : ""}>${label}</a>`;
     return `<div class="seg" role="navigation" aria-label="Study">
-      ${item("guides","Quiz study guides")}${item("words","CS words")}
+      ${item("guides","Quiz study guides")}${item("words","CS words")}${item("challenges","Karel challenges")}
     </div>`;
   }
 
@@ -271,6 +271,127 @@
   /* Printing: open every answer so the printout has the full key. */
   addEventListener("beforeprint", () => document.querySelectorAll("details.ans").forEach(d => d.open = true));
 
+  /* ---------- Karel challenges: hint ladders ---------- */
+
+  /* What a scholar has opened, kept per device so a page reload
+     doesn't re-lock hints they already used. Browsers can refuse
+     storage (private windows, blocked cookies), so every call is
+     wrapped and the page works fine without it. */
+  const STORE_KEY = "mrg-challenges";
+
+  function loadProgress(){
+    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; }
+    catch (e) { return {}; }
+  }
+  function saveProgress(state){
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  let PROGRESS = loadProgress();
+
+  /* Hints open one at a time: hint 2 is locked until hint 1 is open,
+     and the code frame is locked until all three have been used. */
+  function hintsFor(c, opened){
+    const rows = c.hints.map((h, i) => {
+      const isOpen = i < opened, isNext = i === opened;
+      if (isOpen) {
+        return `<li class="hint-row open">
+          <p class="hint-label">Hint ${i+1}</p>
+          <p class="hint-text">${fmt(h)}</p>
+        </li>`;
+      }
+      return `<li class="hint-row">
+        <button type="button" class="hint-btn" data-hint="${c.id}" data-n="${i+1}"${isNext ? "" : " disabled"}>
+          <span class="hint-n">${i+1}</span>
+          <span>${isNext ? `Show hint ${i+1}` : `Hint ${i+1} is locked`}</span>
+          <span class="hint-meta">${isNext ? "Try for five minutes first" : `Open hint ${i} first`}</span>
+        </button>
+      </li>`;
+    }).join("");
+
+    const all = opened >= c.hints.length;
+    const frame = all
+      ? `<details class="ans frame">
+           <summary><span class="show">Show the code frame</span><span class="hide">Hide the code frame</span></summary>
+           ${codeBlock(c.frame)}
+           <p class="hint">Type it yourself. Copying it in teaches you nothing, and the quiz is on paper.</p>
+         </details>`
+      : `<p class="frame-locked">The code frame unlocks after all three hints. You are ${c.hints.length - opened} hint${c.hints.length - opened === 1 ? "" : "s"} away.</p>`;
+
+    return `<ol class="hints">${rows}</ol>${frame}`;
+  }
+
+  function challengeCard(c){
+    const state = PROGRESS[c.id] || {};
+    const opened = state.hints || 0;
+    const checks = state.tests || [];
+    return `<article class="chal" id="ch-${c.id}" data-id="${c.id}">
+      <h2><span class="num">${txt(c.num)}</span>${txt(c.title)}</h2>
+      <p class="goal">${fmt(c.goal)}</p>
+      <div class="prepost">
+        <div><p class="label">Karel starts</p><p>${fmt(c.pre)}</p></div>
+        <div><p class="label">Karel ends</p><p>${fmt(c.post)}</p></div>
+      </div>
+      <p class="callout"><b>The big idea.</b> ${fmt(c.idea)}</p>
+      <div class="hintbox">${hintsFor(c, opened)}</div>
+      <p class="label tests-label">Test it before you submit</p>
+      <ul class="tests">${c.tests.map((t,i)=>`<li>
+        <label><input type="checkbox" data-test="${c.id}" data-i="${i}"${checks[i] ? " checked" : ""}><span>${fmt(t)}</span></label>
+      </li>`).join("")}</ul>
+    </article>`;
+  }
+
+  function pageChallenges(){
+    return `<div class="page">
+      ${studySwitch("challenges")}
+      <h1 tabindex="-1">Karel challenges</h1>
+      <p class="intro">${fmt(CHALLENGES_INTRO)}</p>
+
+      <details class="past steps">
+        <summary>The six steps, every time</summary>
+        <ol class="period">${CHALLENGE_STEPS.map(([t,d])=>`<li><b>${txt(t)}</b>${fmt(d)}</li>`).join("")}</ol>
+      </details>
+
+      <div class="chals">${CHALLENGES.map(challengeCard).join("")}</div>
+
+      <section>
+        <h2>When it does not work</h2>
+        <div class="tbl"><table>
+          <thead><tr><th scope="col">What you see</th><th scope="col">What to check</th></tr></thead>
+          <tbody>${CHALLENGE_BUGS.map(([a,b])=>`<tr><td data-label="What you see">${fmt(a)}</td><td data-label="What to check">${fmt(b)}</td></tr>`).join("")}</tbody>
+        </table></div>
+      </section>
+
+      <section class="panel">
+        <p><b>Before you raise your hand,</b> finish these three sentences out loud: my program does ___ but it should do ___; I think the bug is in ___; one thing I already tried is ___.</p>
+      </section>
+    </div>`;
+  }
+
+  /* Opening a hint or checking a test box updates the card in place. */
+  function challengeClicks(root){
+    root.addEventListener("click", e => {
+      const btn = e.target.closest(".hint-btn");
+      if (!btn || btn.disabled) return;
+      const id = btn.dataset.hint, c = CHALLENGES.find(x => x.id === id);
+      const state = PROGRESS[id] || (PROGRESS[id] = {});
+      state.hints = Math.max(state.hints || 0, Number(btn.dataset.n));
+      saveProgress(PROGRESS);
+      const box = document.querySelector(`#ch-${id} .hintbox`);
+      box.innerHTML = hintsFor(c, state.hints);
+      const fresh = box.querySelector(".hint-row.open:last-of-type .hint-text");
+      if (fresh) { fresh.setAttribute("tabindex","-1"); fresh.focus({ preventScroll: true }); }
+    });
+    root.addEventListener("change", e => {
+      const box = e.target.closest("input[data-test]");
+      if (!box) return;
+      const id = box.dataset.test;
+      const state = PROGRESS[id] || (PROGRESS[id] = {});
+      state.tests = state.tests || [];
+      state.tests[Number(box.dataset.i)] = box.checked;
+      saveProgress(PROGRESS);
+    });
+  }
+
   /* ---------- Course Map ---------- */
 
   function mapItem([id, when, name, desc, isProject]){
@@ -353,7 +474,8 @@
 
   const RENDER = {
     newsletter: pageNewsletter, guides: pageGuides, words: pageWords,
-    map: pageMap, careers: pageCareers, class: pageClass, about: pageClass
+    challenges: pageChallenges, map: pageMap, careers: pageCareers,
+    class: pageClass, about: pageClass
   };
 
   function route(fromNavigation){
@@ -403,8 +525,14 @@
         if (btn) checkChoice(btn);
       });
     }
+    if (key === "challenges") {
+      challengeClicks(document.getElementById("app"));
+      /* #challenges/tower opens straight to that card. */
+      const card = sub && document.getElementById(`ch-${sub}`);
+      if (card) card.scrollIntoView();
+    }
 
-    const title = key === "words" ? "CS Words" : key === "about" ? "About Mr. Graham" : TABS.find(t => t[0] === tab)[4];
+    const title = key === "words" ? "CS Words" : key === "challenges" ? "Karel Challenges" : key === "about" ? "About Mr. Graham" : TABS.find(t => t[0] === tab)[4];
     document.title = `${title} | Mr. Graham’s CS Class`;
 
     if (key === "about") {
