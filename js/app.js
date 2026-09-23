@@ -443,8 +443,6 @@
       <section class="panel">
         <p><b>Before you raise your hand,</b> finish these three sentences out loud: my program does ___ but it should do ___; I think the bug is in ___; one thing I already tried is ___.</p>
       </section>
-
-      <p class="timers"><button type="button" id="timerToggle" class="linkish">${noTimers() ? "Turn hint timers back on" : "Turn off hint timers on this device"}</button></p>
     </div>`;
   }
 
@@ -545,15 +543,17 @@
     startTicker();
   }
 
-  /* Teacher switch, for a scholar with an accommodation or a
-     conference where waiting makes no sense. Per device. */
-  function toggleTimers(){
-    try {
-      localStorage.setItem("mrg-no-timers", noTimers() ? "0" : "1");
-    } catch (e) {}
-    CHALLENGES.forEach(c => refresh(c.id));
-    const b = document.getElementById("timerToggle");
-    if (b) b.textContent = noTimers() ? "Turn hint timers back on" : "Turn off hint timers on this device";
+  /* Teacher switch. There is no button for this on the page, on
+     purpose: a button a scholar can see is a button a scholar will
+     press. Visiting #challenges/nowait turns the timers off for
+     that device, and #challenges/wait turns them back on. Use it on
+     your own laptop, or on a scholar's device for an accommodation
+     or a conference. */
+  function timerSwitch(sub){
+    if (sub !== "nowait" && sub !== "wait") return false;
+    try { localStorage.setItem("mrg-no-timers", sub === "nowait" ? "1" : "0"); } catch (e) {}
+    history.replaceState(null, "", "#challenges");
+    return true;
   }
 
   /* ---------- Course Map ---------- */
@@ -648,6 +648,9 @@
     const tab = PARENT_TAB[key] || key;
 
     stopTicker();
+    /* #challenges/nowait and #challenges/wait set the timer switch
+       for this device, then land on the normal page. */
+    if (key === "challenges" && timerSwitch(sub)) return route(fromNavigation);
     document.getElementById("app").innerHTML = RENDER[key]();
 
     document.querySelectorAll("#nav a").forEach(a => {
@@ -692,7 +695,6 @@
     }
     if (key === "challenges") {
       challengeClicks(document.getElementById("app"));
-      document.getElementById("timerToggle").addEventListener("click", toggleTimers);
       /* #challenges/tower opens straight to that card. */
       const card = sub && document.getElementById(`ch-${sub}`);
       if (card) card.scrollIntoView();
